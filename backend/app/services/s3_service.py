@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 from fastapi import UploadFile, HTTPException, status
 from app.core.config import settings
 
-ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "application/pdf"}
+ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp", "application/pdf", "image/heic", "image/heif"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 

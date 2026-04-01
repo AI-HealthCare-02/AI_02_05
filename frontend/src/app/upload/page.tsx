@@ -37,7 +37,7 @@ export default function UploadPage() {
               ${dragging ? "border-emerald-500 bg-emerald-50" : "border-gray-300 bg-white hover:border-emerald-400"}
               ${isPending ? "pointer-events-none opacity-60" : ""}`}
           >
-            <input type="file" accept="image/*,application/pdf" className="hidden"
+            <input type="file" accept="image/*,application/pdf,.heic,.heif" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
             <span className="text-4xl mb-2">🖼️</span>
             <p className="text-sm font-medium text-gray-700">갤러리에서 선택</p>
