@@ -7,7 +7,7 @@ from app.api.routes import upload, ocr, schedule, drugs, auth, chat
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="ClinicalCare+ API", version="0.1.0")
+app = FastAPI(title="PillMate API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

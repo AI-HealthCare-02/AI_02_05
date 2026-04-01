@@ -4,8 +4,8 @@ import { Providers } from "./providers";
 import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
-  title: "ClinicalCare+",
-  description: "처방전 기반 복약 안내 서비스",
+  title: "PillMate",
+  description: "처방전 한 장으로 시작하는 스마트 복약 관리",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -8,7 +8,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <div className="text-5xl mb-4">💊</div>
-          <h1 className="text-2xl font-bold text-gray-900">ClinicalCare+</h1>
+          <h1 className="text-2xl font-bold text-gray-900">PillMate</h1>
           <p className="text-sm text-gray-500 mt-2">처방전 한 장으로 복약 관리 시작</p>
         </div>
         <div className="space-y-3">
