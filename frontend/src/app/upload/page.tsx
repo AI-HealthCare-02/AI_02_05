@@ -11,6 +11,10 @@ export default function UploadPage() {
 
   const handleFile = useCallback(
     (file: File) => {
+      if (file.size > 10 * 1024 * 1024) {
+        alert("파일 크기가 10MB를 초과했어요. 사진을 압축하거나 다른 파일을 선택해주세요.");
+        return;
+      }
       upload(file, { onSuccess: ({ ocr_id }) => router.push(`/ocr/${ocr_id}`) });
     },
     [upload, router]
@@ -24,22 +28,30 @@ export default function UploadPage() {
           <p className="text-sm text-gray-500 mt-1">사진을 올리면 복약 스케줄이 자동으로 생성돼요</p>
         </div>
 
-        <label
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
-          className={`flex flex-col items-center justify-center w-full h-56 border-2 border-dashed rounded-2xl cursor-pointer transition-colors
-            ${dragging ? "border-emerald-500 bg-emerald-50" : "border-gray-300 bg-white hover:border-emerald-400"}
-            ${isPending ? "pointer-events-none opacity-60" : ""}`}
-        >
-          <input type="file" accept="image/*,application/pdf" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-          <span className="text-5xl mb-3">📋</span>
-          <p className="text-sm font-medium text-gray-700">
-            {isPending ? "업로드 중..." : "클릭하거나 파일을 드래그하세요"}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">JPG · PNG · PDF 지원</p>
-        </label>
+        <div className="space-y-3">
+          <label
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+            className={`flex flex-col items-center justify-center w-full h-44 border-2 border-dashed rounded-2xl cursor-pointer transition-colors
+              ${dragging ? "border-emerald-500 bg-emerald-50" : "border-gray-300 bg-white hover:border-emerald-400"}
+              ${isPending ? "pointer-events-none opacity-60" : ""}`}
+          >
+            <input type="file" accept="image/*,application/pdf" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+            <span className="text-4xl mb-2">🖼️</span>
+            <p className="text-sm font-medium text-gray-700">갤러리에서 선택</p>
+            <p className="text-xs text-gray-400 mt-1">JPG · PNG · PDF · 최대 10MB</p>
+          </label>
+
+          <label className={`flex items-center justify-center gap-3 w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl cursor-pointer transition-colors
+            ${isPending ? "pointer-events-none opacity-60" : ""}`}>
+            <input type="file" accept="image/*" capture="environment" className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+            <span className="text-xl">📷</span>
+            {isPending ? "업로드 중..." : "카메라로 촬영"}
+          </label>
+        </div>
 
         {isError && <p className="text-sm text-red-500 text-center">업로드에 실패했어요. 다시 시도해주세요.</p>}
 
