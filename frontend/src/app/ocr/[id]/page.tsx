@@ -47,7 +47,7 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-4">
+    <main className="min-h-screen bg-gray-50 p-4 pb-24">
       <div className="max-w-md mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold text-gray-900">
@@ -63,6 +63,13 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
               직접 입력 모드
             </span>
           )}
+        </div>
+
+        {/* OCR 고지 문구 */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-1">
+          <p className="font-semibold">⚠️ 확인 필수</p>
+          <p>AI 인식 결과가 실제 처방전과 다를 수 있습니다.</p>
+          <p>반드시 처방전 원본과 대조 후 수정하여 사용하세요.</p>
         </div>
 
         <p className="text-sm text-gray-500">
@@ -123,7 +130,9 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
           {isConfirming ? "스케줄 생성 중..." : "복약 스케줄 생성하기 →"}
         </button>
 
-        <p className="text-xs text-gray-400 text-center">※ 본 서비스는 의료 행위를 대체하지 않습니다</p>
+        <p className="text-xs text-gray-400 text-center">
+          ※ 본 서비스는 의료 행위를 대체하지 않습니다
+        </p>
       </div>
     </main>
   );

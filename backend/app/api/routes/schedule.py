@@ -20,10 +20,7 @@ async def get_stats(
     service: ScheduleService = Depends(get_schedule_service),
 ):
     if start > end:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="start must be before end",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="start must be before end")
     return await service.get_compliance(user_id, start, end)
 
 
@@ -44,3 +41,12 @@ async def check_schedule(
     service: ScheduleService = Depends(get_schedule_service),
 ):
     return await service.check(schedule_id, user_id, body.checked)
+
+
+@router.delete("/{schedule_id}")
+async def delete_schedule(
+    schedule_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: ScheduleService = Depends(get_schedule_service),
+):
+    return await service.delete(schedule_id, user_id)

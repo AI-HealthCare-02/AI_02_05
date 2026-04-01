@@ -1,6 +1,9 @@
 import uuid
 import httpx
+import base64
+import aioboto3
 from datetime import date
+from pathlib import Path
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.ocr_repository import OCRRepository
@@ -9,7 +12,9 @@ from app.services.ocr_parser import OCRParser
 from app.services.schedule_service import ScheduleService, ScheduleCreateInput
 from app.core.exceptions import NotFoundError, OCRProcessingError
 from app.core.config import settings
-from app.models.ocr_result import OCRResult
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class OCRService:
@@ -33,7 +38,8 @@ class OCRService:
             try:
                 await svc._run(ocr_id)
                 await session.commit()
-            except Exception:
+            except Exception as e:
+                logger.error(f"OCR 처리 실패: {e}", exc_info=True)
                 await session.rollback()
                 await svc.ocr_repo.update_result(ocr_id, status="failed")
                 await session.commit()
@@ -82,24 +88,64 @@ class OCRService:
         await self.db.commit()
         return {"ocr_id": str(ocr_id), "schedules_created": len(schedules)}
 
+    async def _image_to_base64(self, image_url: str) -> tuple[str, str]:
+        """이미지를 Base64로 변환 (로컬/S3 모두 처리)"""
+        if "localhost" in image_url:
+            # 로컬 파일
+            filename = image_url.split("/uploads/")[-1]
+            file_path = Path("uploads") / filename
+            logger.info(f"로컬 파일 읽기: {file_path}")
+            if not file_path.exists():
+                raise OCRProcessingError(f"파일 없음: {file_path}")
+            with open(file_path, "rb") as f:
+                data = f.read()
+            ext = filename.rsplit(".", 1)[-1].lower()
+        else:
+            # S3에서 직접 다운로드
+            key = image_url.split(".amazonaws.com/")[-1]
+            ext = key.rsplit(".", 1)[-1].lower()
+            logger.info(f"S3에서 이미지 다운로드: {key}")
+            session = aioboto3.Session(
+                aws_access_key_id=settings.AWS_ACCESS_KEY,
+                aws_secret_access_key=settings.AWS_SECRET_KEY,
+                region_name=settings.AWS_REGION,
+            )
+            async with session.client("s3") as s3:
+                response = await s3.get_object(Bucket=settings.S3_BUCKET, Key=key)
+                data = await response["Body"].read()
+            logger.info(f"S3 다운로드 완료: {len(data)} bytes")
+
+        fmt = "jpg" if ext in ("jpg", "jpeg") else ext
+        return base64.b64encode(data).decode("utf-8"), fmt
+
     async def _call_clova(self, image_url: str) -> tuple[str, float]:
+        image_data, fmt = await self._image_to_base64(image_url)
+
         payload = {
             "version": "V2",
             "requestId": str(uuid.uuid4()),
             "timestamp": 0,
-            "images": [{"format": "jpg", "name": "rx", "url": image_url}],
+            "images": [{"format": fmt, "name": "prescription", "data": image_data}],
         }
-        async with httpx.AsyncClient(timeout=15.0) as client:
+
+        logger.info(f"Clova OCR 호출 (Base64 방식)")
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
                 settings.CLOVA_OCR_URL,
                 headers={"X-OCR-SECRET": settings.CLOVA_OCR_SECRET},
                 json=payload,
             )
+
+        logger.info(f"Clova 응답 status: {resp.status_code}")
         if resp.status_code != 200:
-            raise OCRProcessingError(f"Clova OCR {resp.status_code}")
+            raise OCRProcessingError(f"Clova OCR {resp.status_code}: {resp.text[:200]}")
+
         fields = resp.json()["images"][0].get("fields", [])
+        logger.info(f"Clova fields: {len(fields)}개")
         if not fields:
-            raise OCRProcessingError("Empty OCR result")
+            raise OCRProcessingError("OCR 인식 결과 없음")
+
         raw = " ".join(f["inferText"] for f in fields)
         conf = sum(f["inferConfidence"] for f in fields) / len(fields)
+        logger.info(f"raw_text: {raw[:200]}")
         return raw, round(conf, 4)

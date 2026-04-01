@@ -37,6 +37,19 @@ export function useCheckSchedule() {
   });
 }
 
+export function useDeleteSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (scheduleId: string) => {
+      await api.delete(`/schedule/${scheduleId}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["schedule"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
 export function useStats(start: string, end: string) {
   return useQuery({
     queryKey: ["stats", start, end],

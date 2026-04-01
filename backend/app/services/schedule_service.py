@@ -171,3 +171,22 @@ class ScheduleService:
             streak += 1
             cursor -= timedelta(days=1)
         return streak
+
+
+    async def delete(self, schedule_id: uuid.UUID, user_id: uuid.UUID) -> dict:
+        from sqlalchemy import delete as sql_delete
+        result = await self.db.execute(
+            select(MedicationSchedule).where(
+                MedicationSchedule.id == schedule_id,
+                MedicationSchedule.user_id == user_id,
+            )
+        )
+        schedule = result.scalar_one_or_none()
+        if not schedule:
+            raise NotFoundError("MedicationSchedule", str(schedule_id))
+        await self.db.execute(
+            sql_delete(ScheduleCheck).where(ScheduleCheck.schedule_id == schedule_id)
+        )
+        await self.db.delete(schedule)
+        await self.db.flush()
+        return {"detail": "삭제되었습니다."}

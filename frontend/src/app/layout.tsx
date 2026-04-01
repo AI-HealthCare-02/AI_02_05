@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   title: "ClinicalCare+",
@@ -10,10 +11,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>
+      <body className="bg-gray-50">
         <Providers>
-          <div className="max-w-md mx-auto min-h-screen pb-20 bg-gray-50">
-            {children}
+          <div className="max-w-md mx-auto min-h-screen relative">
+            <div className="pb-16">
+              {children}
+            </div>
+            <BottomNav />
           </div>
         </Providers>
       </body>
