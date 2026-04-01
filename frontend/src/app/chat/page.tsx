@@ -40,7 +40,7 @@ export default function ChatPage() {
     }
 
     try {
-      const resp = await fetch("http://localhost:8000/chat/stream", {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/chat/stream`, {
         method: "POST",
         headers,
         body: JSON.stringify({ message: userMsg }),
