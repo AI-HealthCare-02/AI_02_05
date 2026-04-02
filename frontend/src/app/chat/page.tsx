@@ -95,8 +95,8 @@ export default function ChatPage() {
             <p className="text-gray-600 text-sm mb-4">어떤 게 궁금하세요?</p>
             <div className="space-y-2">
               {[
-                "타이레놀 하루에 몇 번 먹어요?",
-                "항생제 먹을 때 주의사항은?",
+                "지금 먹는 약 부작용이 뭐예요?",
+                "약 먹을 때 주의사항 알려줘",
                 "약 먹고 술 마셔도 돼요?",
               ].map((q) => (
                 <button key={q} onClick={() => setInput(q)}

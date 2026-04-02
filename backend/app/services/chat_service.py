@@ -6,6 +6,12 @@ from openai import AsyncOpenAI
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 
+MEDICATION_CONTEXT_TEMPLATE = """
+[현재 복약 중인 약물 정보]
+{drug_list}
+위 약물 정보를 바탕으로 사용자 질문에 맞춤 답변하세요. 약물명이 언급되면 위 목록과 연결해서 답변하세요.
+"""
+
 SYSTEM_PROMPT = """당신은 ClinicalCare+의 AI 건강 상담 챗봇입니다.
 
 [절대 금지 사항 — 반드시 준수]
@@ -38,6 +44,30 @@ class ChatService:
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.db = db
 
+    async def _get_medication_context(self, user_id: uuid.UUID) -> str:
+        from datetime import date
+        from sqlalchemy import select
+        from app.models.medication_schedule import MedicationSchedule
+        today = date.today()
+        result = await self.db.execute(
+            select(MedicationSchedule.drug_name, MedicationSchedule.dosage, MedicationSchedule.scheduled_time)
+            .where(
+                MedicationSchedule.user_id == user_id,
+                MedicationSchedule.active.is_(True),
+                MedicationSchedule.start_date <= today,
+                MedicationSchedule.end_date >= today,
+            )
+            .order_by(MedicationSchedule.scheduled_time)
+        )
+        rows = result.all()
+        if not rows:
+            return ""
+        drug_list = "\n".join(
+            f"- {r.drug_name} {r.dosage} ({str(r.scheduled_time)[:5]})"
+            for r in rows
+        )
+        return MEDICATION_CONTEXT_TEMPLATE.format(drug_list=drug_list)
+
     async def stream(
         self,
         user_id: uuid.UUID,
@@ -45,7 +75,9 @@ class ChatService:
         session_id: str | None = None,
     ) -> AsyncGenerator[str, None]:
         history = await self._get_history(str(user_id))
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        med_context = await self._get_medication_context(user_id)
+        system_content = SYSTEM_PROMPT + (med_context if med_context else "")
+        messages = [{"role": "system", "content": system_content}]
         messages.extend(history)
         messages.append({"role": "user", "content": message})
 
