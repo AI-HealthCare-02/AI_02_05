@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSchedule, useCheckSchedule, useDeleteSchedule, useStats } from "@/hooks/useSchedule";
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -11,7 +10,6 @@ const monthStart = () => {
 };
 
 export default function SchedulePage() {
-  const router = useRouter();
   const [date] = useState(today);
   const { data: schedules = [], isLoading } = useSchedule(date);
   const { data: stats } = useStats(monthStart(), today());
@@ -24,16 +22,9 @@ export default function SchedulePage() {
   };
 
   const handleDeleteAll = () => {
-    if (confirm(`오늘 복약 일정 ${schedules.length}개를 모두 삭제할까요?`)) {
+    if (confirm(`복약 일정 ${schedules.length}개를 모두 삭제할까요?`)) {
       schedules.forEach((s) => deleteSchedule(s.id));
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("user");
-    router.replace("/login");
   };
 
   return (
@@ -41,23 +32,12 @@ export default function SchedulePage() {
       <div className="bg-emerald-600 px-4 pt-12 pb-6 text-white">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-xl font-bold">오늘의 복약</h1>
-          <div className="flex gap-2">
-            {schedules.length > 0 && (
-              <button
-                onClick={handleDeleteAll}
-                className="text-xs bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30">
-                전체 삭제
-              </button>
-            )}
-            <a href="/upload" className="text-xs bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30">
-              + 처방전
-            </a>
-            <button
-              onClick={handleLogout}
+          {schedules.length > 0 && (
+            <button onClick={handleDeleteAll}
               className="text-xs bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30">
-              로그아웃
+              전체 삭제
             </button>
-          </div>
+          )}
         </div>
         <div className="bg-white/15 rounded-2xl p-4">
           <div className="flex justify-between text-sm mb-2">
@@ -102,7 +82,7 @@ export default function SchedulePage() {
             </div>
           )}
           {schedules.map((item) => (
-            <div key={item.id} className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all ${item.checked ? "opacity-70" : ""}`}>
+            <div key={item.id} className={`bg-white rounded-2xl shadow-sm transition-all ${item.checked ? "opacity-70" : ""}`}>
               <div className="flex items-center gap-3 px-4 py-3.5">
                 <button
                   onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
@@ -114,11 +94,7 @@ export default function SchedulePage() {
                   <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
                     {item.drug_name}
                   </p>
-                  {item.dosage && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      1회 {item.dosage} 복용
-                    </p>
-                  )}
+                  {item.dosage && <p className="text-xs text-gray-400 mt-0.5">1회 {item.dosage} 복용</p>}
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <p className="text-xs text-gray-400">{item.scheduled_time.slice(0, 5)}</p>

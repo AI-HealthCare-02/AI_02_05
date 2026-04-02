@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/schedule", label: "복약", icon: "⏰" },
-  { href: "/upload",   label: "처방전", icon: "📋" },
   { href: "/chat",     label: "AI 상담", icon: "💬" },
+  { href: "/settings", label: "설정", icon: "⚙️" },
 ];
 
-const HIDE_ON = ["/login", "/auth"];
+const HIDE_ON = ["/login", "/auth", "/upload", "/ocr"];
 
 export default function BottomNav() {
   const path = usePathname();
