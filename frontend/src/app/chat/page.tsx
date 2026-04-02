@@ -7,12 +7,26 @@ interface Message {
   content: string;
 }
 
+const STORAGE_KEY = "pillmate_chat_history";
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef("");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setMessages(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch {}
+  }, [messages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,7 +110,7 @@ export default function ChatPage() {
             <div className="space-y-2">
               {[
                 "지금 먹는 약 부작용이 뭐예요?",
-                "약 먹을 때 주의사항 알려줘",
+                "지금 먹는 약에 대해 알려줘",
                 "약 먹고 술 마셔도 돼요?",
               ].map((q) => (
                 <button key={q} onClick={() => setInput(q)}
