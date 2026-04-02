@@ -95,6 +95,8 @@ class ScheduleService:
                 "scheduled_time": str(s.scheduled_time),
                 "checked": check is not None and check.checked_at is not None,
                 "checked_at": check.checked_at if check else None,
+                "start_date": s.start_date.isoformat(),
+                "end_date": s.end_date.isoformat(),
             }
             for s, check in result.all()
         ]

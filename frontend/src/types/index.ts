@@ -22,6 +22,8 @@ export interface ScheduleItem {
   scheduled_time: string;
   checked: boolean;
   checked_at: string | null;
+  start_date: string;
+  end_date: string;
 }
 
 export interface StatsResponse {
