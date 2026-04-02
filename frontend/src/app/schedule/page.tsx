@@ -4,11 +4,23 @@ import { useState } from "react";
 import { useSchedule, useCheckSchedule, useDeleteSchedule, useStats } from "@/hooks/useSchedule";
 import { ScheduleItem } from "@/types";
 
-const today = () => new Date().toISOString().split("T")[0];
+const todayStr = () => new Date().toISOString().split("T")[0];
 const monthStart = () => {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
 };
+
+const TIME_LABELS: Record<string, string> = {
+  "07:30": "아침", "08:00": "아침", "08:30": "아침",
+  "12:00": "점심", "13:00": "점심",
+  "18:00": "저녁", "19:00": "저녁",
+  "21:00": "취침 전", "21:30": "취침 전",
+};
+
+function getTimeLabel(time: string) {
+  const t = time.slice(0, 5);
+  return TIME_LABELS[t] ?? "";
+}
 
 function getDayProgress(item: ScheduleItem, targetDate: string) {
   const start = new Date(item.start_date);
@@ -19,16 +31,24 @@ function getDayProgress(item: ScheduleItem, targetDate: string) {
   return { currentDay: Math.max(1, currentDay), totalDays };
 }
 
+function groupByTime(schedules: ScheduleItem[]) {
+  const map = new Map<string, ScheduleItem[]>();
+  for (const s of schedules) {
+    const key = s.scheduled_time.slice(0, 5);
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(s);
+  }
+  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+}
+
 function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClose: () => void }) {
   const done = schedules.filter((s) => s.checked);
   const pending = schedules.filter((s) => !s.checked);
-
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={onClose}>
       <div className="bg-white w-full max-w-md mx-auto rounded-t-2xl p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
         <h2 className="text-base font-bold text-gray-800 mb-4">오늘 복약 상세</h2>
-
         {done.length > 0 && (
           <div className="mb-4">
             <p className="text-xs font-semibold text-emerald-600 mb-2">✅ 복약 완료 ({done.length})</p>
@@ -42,7 +62,6 @@ function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClos
             </div>
           </div>
         )}
-
         {pending.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-amber-500 mb-2">⏳ 미복약 ({pending.length})</p>
@@ -62,17 +81,16 @@ function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClos
 }
 
 export default function SchedulePage() {
-  const [date] = useState(today);
+  const [date] = useState(todayStr);
   const [showDetail, setShowDetail] = useState(false);
   const { data: schedules = [], isLoading } = useSchedule(date);
-  const { data: stats } = useStats(monthStart(), today());
+  const { data: stats } = useStats(monthStart(), todayStr());
   const { mutate: check } = useCheckSchedule();
   const { mutate: deleteSchedule } = useDeleteSchedule();
-  const checked = schedules.filter((s) => s.checked).length;
 
-  const handleDelete = (id: string) => {
-    if (confirm("이 복약 일정을 삭제할까요?")) deleteSchedule(id);
-  };
+  const checked = schedules.filter((s) => s.checked).length;
+  const dayProgress = schedules.length > 0 ? getDayProgress(schedules[0], date) : null;
+  const groups = groupByTime(schedules);
 
   const handleDeleteAll = () => {
     if (confirm(`복약 일정 ${schedules.length}개를 모두 삭제할까요?`)) {
@@ -80,8 +98,10 @@ export default function SchedulePage() {
     }
   };
 
-  // 대표 일수 (첫 번째 스케줄 기준)
-  const dayProgress = schedules.length > 0 ? getDayProgress(schedules[0], date) : null;
+  const handleGroupCheck = (items: ScheduleItem[]) => {
+    const allChecked = items.every((s) => s.checked);
+    items.forEach((s) => check({ scheduleId: s.id, checked: !allChecked }));
+  };
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -96,22 +116,16 @@ export default function SchedulePage() {
             )}
           </div>
           {schedules.length > 0 && (
-            <button onClick={handleDeleteAll}
-              className="text-xs bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30">
+            <button onClick={handleDeleteAll} className="text-xs bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30">
               전체 삭제
             </button>
           )}
         </div>
-
-        <button
-          className="w-full bg-white/15 rounded-2xl p-4 text-left active:bg-white/20"
-          onClick={() => schedules.length > 0 && setShowDetail(true)}
-        >
+        <button className="w-full bg-white/15 rounded-2xl p-4 text-left active:bg-white/20"
+          onClick={() => schedules.length > 0 && setShowDetail(true)}>
           <div className="flex justify-between text-sm mb-2">
             <span className="text-emerald-100">진행률</span>
-            <span className="font-bold">
-              {schedules.length ? Math.round((checked / schedules.length) * 100) : 0}%
-            </span>
+            <span className="font-bold">{schedules.length ? Math.round((checked / schedules.length) * 100) : 0}%</span>
           </div>
           <div className="h-2 bg-white/30 rounded-full">
             <div className="h-2 bg-white rounded-full transition-all"
@@ -140,7 +154,7 @@ export default function SchedulePage() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           {isLoading && <div className="text-center py-8 text-gray-400 text-sm">불러오는 중...</div>}
           {!isLoading && schedules.length === 0 && (
             <div className="bg-white rounded-2xl p-8 text-center shadow-sm">
@@ -151,41 +165,63 @@ export default function SchedulePage() {
               </a>
             </div>
           )}
-          {schedules.map((item) => {
-            const { currentDay, totalDays } = getDayProgress(item, date);
+
+          {groups.map(([time, items]) => {
+            const allChecked = items.every((s) => s.checked);
+            const someChecked = items.some((s) => s.checked);
+            const label = getTimeLabel(time);
+            const { currentDay, totalDays } = getDayProgress(items[0], date);
+
             return (
-              <div key={item.id} className={`bg-white rounded-2xl shadow-sm transition-all ${item.checked ? "opacity-70" : ""}`}>
-                <div className="flex items-center gap-3 px-4 py-3.5">
+              <div key={time} className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all ${allChecked ? "opacity-70" : ""}`}>
+                {/* 그룹 헤더 */}
+                <div className={`flex items-center justify-between px-4 py-3 ${allChecked ? "bg-emerald-50" : "bg-gray-50"}`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-gray-700">{time}</span>
+                    {label && <span className="text-xs text-gray-400">{label}</span>}
+                    <span className="text-xs text-gray-300">· {currentDay}일차/{totalDays}일</span>
+                  </div>
                   <button
-                    onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                      ${item.checked ? "bg-emerald-600 border-emerald-600 text-white" : "border-gray-300 hover:border-emerald-400"}`}>
-                    {item.checked && <span className="text-xs">✓</span>}
+                    onClick={() => handleGroupCheck(items)}
+                    className={`text-xs px-3 py-1 rounded-full font-medium transition-all
+                      ${allChecked
+                        ? "bg-emerald-100 text-emerald-700"
+                        : someChecked
+                          ? "bg-amber-100 text-amber-600"
+                          : "bg-gray-100 text-gray-500 hover:bg-emerald-100 hover:text-emerald-700"
+                      }`}>
+                    {allChecked ? "✓ 완료" : "완료 처리"}
                   </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
-                      {item.drug_name}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {item.dosage && `1회 ${item.dosage} · `}{currentDay}일차 / {totalDays}일
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <p className="text-xs text-gray-400">{item.scheduled_time.slice(0, 5)}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium
-                      ${item.checked ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-600"}`}>
-                      {item.checked ? "완료" : "예정"}
-                    </span>
-                  </div>
-                  <button onClick={() => handleDelete(item.id)}
-                    className="text-gray-300 hover:text-red-400 transition-colors pl-1 text-lg flex-shrink-0">
-                    ×
-                  </button>
+                </div>
+
+                {/* 약물 목록 */}
+                <div className="divide-y divide-gray-50">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                      <button
+                        onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                          ${item.checked ? "bg-emerald-600 border-emerald-600 text-white" : "border-gray-300 hover:border-emerald-400"}`}>
+                        {item.checked && <span className="text-[10px]">✓</span>}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-medium ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
+                          {item.drug_name}
+                        </p>
+                        {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
+                      </div>
+                      <button onClick={() => deleteSchedule(item.id)}
+                        className="text-gray-300 hover:text-red-400 transition-colors text-lg flex-shrink-0">
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             );
           })}
         </div>
+
         <p className="text-xs text-gray-400 text-center pb-6">
           ※ 본 스케줄은 참고용입니다. 변경 시 의사·약사와 상담하세요.
         </p>
