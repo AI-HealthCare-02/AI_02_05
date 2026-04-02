@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- 배경 -->
+  <rect width="32" height="32" fill="#e8d5f5" rx="4"/>
+  <!-- 타원 외곽 (보라색) -->
+  <rect x="3" y="1" width="26" height="30" rx="13" ry="13" fill="#b06ab3"/>
+  <!-- 점선 효과 (초록) -->
+  <rect x="4.5" y="2.5" width="23" height="27" rx="11.5" ry="11.5" fill="none" stroke="#7ab648" stroke-width="1.5" stroke-dasharray="2,1.5"/>
+  <!-- 흰 내부 -->
+  <rect x="6" y="4" width="20" height="24" rx="10" ry="10" fill="white"/>
+  <!-- P -->
+  <text x="16" y="15" font-family="Georgia, serif" font-size="9" font-weight="bold" fill="#1a4a2e" text-anchor="middle">P</text>
+  <!-- M -->
+  <text x="16" y="24" font-family="Georgia, serif" font-size="9" font-weight="bold" fill="#1a4a2e" text-anchor="middle">M</text>
+</svg>

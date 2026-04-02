@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "처방전 한 장으로 시작하는 스마트 복약 관리",
   icons: {
     icon: [
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
     ],
     apple: "/apple-touch-icon.png",
