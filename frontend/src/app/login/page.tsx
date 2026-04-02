@@ -9,7 +9,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <Image src="/PillMate.png" alt="PillMate" width={140} height={140} className="mx-auto mb-4" />
+          <Image src="/PillMate.png" alt="PillMate" width={160} height={160} className="mx-auto mb-4 rounded-full object-cover" />
           <p className="text-sm text-gray-500 mt-2">처방전 한 장으로 복약 관리 시작</p>
         </div>
         <div className="space-y-3">
