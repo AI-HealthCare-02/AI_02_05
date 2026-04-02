@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 export default function LoginPage() {
   const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&redirect_uri=${process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI}&response_type=code`;
 
@@ -7,8 +9,7 @@ export default function LoginPage() {
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <div className="text-5xl mb-4">💊</div>
-          <h1 className="text-2xl font-bold text-gray-900">PillMate</h1>
+          <Image src="/PillMate.png" alt="PillMate" width={140} height={140} className="mx-auto mb-4" />
           <p className="text-sm text-gray-500 mt-2">처방전 한 장으로 복약 관리 시작</p>
         </div>
         <div className="space-y-3">

@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 export const metadata: Metadata = {
   title: "PillMate",
   description: "처방전 한 장으로 시작하는 스마트 복약 관리",
+  icons: { icon: "/PillMate.png", apple: "/PillMate.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
