@@ -81,7 +81,7 @@ export default function SchedulePage() {
   };
 
   // 대표 일수 (첫 번째 스케줄 기준)
-  const dayProgress = schedules.length > 0 ? getDayProgress(schedules[0], date()) : null;
+  const dayProgress = schedules.length > 0 ? getDayProgress(schedules[0], date) : null;
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -152,7 +152,7 @@ export default function SchedulePage() {
             </div>
           )}
           {schedules.map((item) => {
-            const { currentDay, totalDays } = getDayProgress(item, date());
+            const { currentDay, totalDays } = getDayProgress(item, date);
             return (
               <div key={item.id} className={`bg-white rounded-2xl shadow-sm transition-all ${item.checked ? "opacity-70" : ""}`}>
                 <div className="flex items-center gap-3 px-4 py-3.5">
