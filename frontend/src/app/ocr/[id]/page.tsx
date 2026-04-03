@@ -50,6 +50,10 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
           ))}
         </div>
         <p className="text-violet-300 text-xs mt-8">보통 10~20초 정도 걸려요</p>
+        <button onClick={() => { setManualMode(true); setPolling(false); setDrugs([{ ...EMPTY_DRUG }]); }}
+          className="mt-4 text-xs text-violet-300 hover:text-white underline transition-colors">
+          인식이 너무 오래 걸리나요? 직접 입력하기
+        </button>
       </main>
     );
   }

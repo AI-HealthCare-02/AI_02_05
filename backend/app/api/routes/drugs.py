@@ -13,6 +13,14 @@ async def search_drugs(
     return await service.search(q)
 
 
+@router.post("/check-interactions-by-name")
+async def check_interactions_by_name(
+    drug_names: list[str],
+    service: DrugService = Depends(get_drug_service),
+):
+    return await service.check_interactions_by_name(drug_names)
+
+
 @router.post("/check-interactions")
 async def check_interactions(
     drug_ids: list[int],

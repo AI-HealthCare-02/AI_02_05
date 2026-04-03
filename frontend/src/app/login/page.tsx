@@ -1,9 +1,17 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const KAKAO_AUTH_URL = `https://kauth.kakao.com/oauth/authorize?client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}&redirect_uri=${process.env.NEXT_PUBLIC_KAKAO_REDIRECT_URI}&response_type=code`;
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (token) router.replace("/schedule");
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">

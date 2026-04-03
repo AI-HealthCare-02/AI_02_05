@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSchedule, useCheckSchedule, useDeleteSchedule, useStats } from "@/hooks/useSchedule";
 import { ScheduleItem } from "@/types";
 
@@ -94,9 +94,81 @@ function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClos
   );
 }
 
+function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d: string) => void; onClose: () => void }) {
+  const [viewYear, setViewYear] = useState(new Date(date).getFullYear());
+  const [viewMonth, setViewMonth] = useState(new Date(date).getMonth());
+  const today = todayStr();
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const cells = Array(firstDay).fill(null).concat(Array.from({ length: daysInMonth }, (_, i) => i + 1));
+
+  const moveMonth = (d: number) => {
+    const m = viewMonth + d;
+    if (m < 0) { setViewYear(y => y - 1); setViewMonth(11); }
+    else if (m > 11) { setViewYear(y => y + 1); setViewMonth(0); }
+    else setViewMonth(m);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => moveMonth(-1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-violet-600">‹</button>
+          <p className="text-sm font-bold text-gray-800">{viewYear}년 {viewMonth + 1}월</p>
+          <button onClick={() => moveMonth(1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-violet-600">›</button>
+        </div>
+        <div className="grid grid-cols-7 mb-2">
+          {["일","월","화","수","목","금","토"].map(d => (
+            <p key={d} className={`text-center text-xs font-semibold py-1 ${d==="일" ? "text-red-400" : d==="토" ? "text-blue-400" : "text-gray-400"}`}>{d}</p>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-y-1">
+          {cells.map((day, i) => {
+            if (!day) return <div key={i} />;
+            const d = `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+            const isSelected = d === date;
+            const isToday = d === today;
+            const isSun = i % 7 === 0;
+            const isSat = i % 7 === 6;
+            return (
+              <button key={i} onClick={() => { onSelect(d); onClose(); }}
+                className={`aspect-square flex items-center justify-center rounded-full text-sm font-medium transition-all
+                  ${isSelected ? "bg-violet-600 text-white" : isToday ? "bg-violet-100 text-violet-600" : "hover:bg-gray-100"}
+                  ${!isSelected && isSun ? "text-red-400" : ""}
+                  ${!isSelected && isSat ? "text-blue-400" : ""}
+                  ${!isSelected && !isSun && !isSat ? "text-gray-700" : ""}`}>
+                {day}
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={() => { onSelect(today); onClose(); }}
+          className="w-full mt-4 text-sm text-violet-600 font-semibold py-2 bg-violet-50 rounded-xl hover:bg-violet-100 transition-colors">
+          오늘로 이동
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SchedulePage() {
   const [date, setDate] = useState(todayStr);
   const [showDetail, setShowDetail] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [interactions, setInteractions] = useState<{ severity: string; description: string }[]>([]);
+
+  useEffect(() => {
+    if (schedules.length < 2) return;
+    const names = [...new Set(schedules.map((s) => s.drug_name))];
+    const token = localStorage.getItem("access_token");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/drugs/check-interactions-by-name`, {
+      method: "POST", headers, body: JSON.stringify(names),
+    }).then((r) => r.json()).then((d) => setInteractions(d.interactions ?? [])).catch(() => {});
+  }, [schedules.length]);
   const { data: schedules = [], isLoading } = useSchedule(date);
   const { data: stats } = useStats(monthStart(), todayStr());
   const { mutate: check } = useCheckSchedule();
@@ -140,10 +212,10 @@ export default function SchedulePage() {
                 className="w-6 h-6 flex items-center justify-center text-violet-200 hover:text-white transition-colors text-lg">
                 ‹
               </button>
-              <button onClick={() => setDate(todayStr())}
+              <button onClick={() => setShowCalendar(true)}
                 className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
                   isToday ? "bg-white/20 text-white" : "text-violet-300 hover:text-white"}`}>
-                {dateLabel}
+                {dateLabel} ▾
               </button>
               <button onClick={() => moveDate(1)}
                 className="w-6 h-6 flex items-center justify-center text-violet-200 hover:text-white transition-colors text-lg">
@@ -201,6 +273,24 @@ export default function SchedulePage() {
               <div key={label} className={`${bg} rounded-2xl p-3 text-center`}>
                 <p className={`text-xl font-bold ${color}`}>{value}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 약물 상호작용 경고 */}
+        {interactions.length > 0 && (
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-2">
+            <p className="text-xs font-bold text-red-600">⚠️ 약물 상호작용 경고</p>
+            {interactions.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className={`text-xs px-1.5 py-0.5 rounded font-semibold flex-shrink-0 ${
+                  item.severity === "high" ? "bg-red-100 text-red-600" :
+                  item.severity === "medium" ? "bg-amber-100 text-amber-600" :
+                  "bg-gray-100 text-gray-500"}`}>
+                  {item.severity === "high" ? "위험" : item.severity === "medium" ? "주의" : "정보"}
+                </span>
+                <p className="text-xs text-red-700 leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
@@ -300,6 +390,7 @@ export default function SchedulePage() {
       </div>
 
       {showDetail && <DetailModal schedules={schedules} onClose={() => setShowDetail(false)} />}
+      {showCalendar && <MiniCalendar date={date} onSelect={setDate} onClose={() => setShowCalendar(false)} />}
     </main>
   );
 }

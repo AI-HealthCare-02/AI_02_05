@@ -19,6 +19,16 @@ class DrugService:
             for d in drugs
         ]
 
+    async def check_interactions_by_name(self, drug_names: list[str]) -> dict:
+        drugs = []
+        for name in drug_names:
+            found = await self.repo.search(name)
+            if found:
+                drugs.append(found[0])
+        if len(drugs) < 2:
+            return {"interactions": [], "safe": True}
+        return await self.check_interactions([d.id for d in drugs])
+
     async def check_interactions(self, drug_ids: list[int]) -> dict:
         if len(drug_ids) < 2:
             return {"interactions": [], "safe": True}
