@@ -83,7 +83,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 처방전 등록 */}}
+        {/* 처방전 등록 */}
         <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
           <button
             onClick={() => router.push("/upload")}
