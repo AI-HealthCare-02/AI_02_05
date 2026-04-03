@@ -5,16 +5,62 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "@/lib/push";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+interface ShareToken {
+  id: string; token: string; label: string;
+  expires_at: string | null; expired: boolean;
+}
+
 export default function SettingsPage() {
   const router = useRouter();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [user, setUser] = useState<{ nickname?: string; profile_img_url?: string }>({});
+  const [shares, setShares] = useState<ShareToken[]>([]);
+  const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
     try { setUser(JSON.parse(localStorage.getItem("user") || "{}")); } catch {}
     setPushEnabled(isPushSubscribed());
+    loadShares();
   }, []);
+
+  const authHeaders = () => {
+    const token = localStorage.getItem("access_token");
+    const h: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
+
+  const loadShares = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/share/list`, { headers: authHeaders() });
+      if (res.ok) setShares(await res.json());
+    } catch {}
+  };
+
+  const createShare = async () => {
+    setShareLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/share/`, {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({ label: "보호자 공유", expires_days: 30 }),
+      });
+      if (res.ok) await loadShares();
+    } finally { setShareLoading(false); }
+  };
+
+  const deleteShare = async (id: string) => {
+    await fetch(`${API_URL}/api/share/${id}`, { method: "DELETE", headers: authHeaders() });
+    setShares((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const copyLink = (token: string) => {
+    const url = `${window.location.origin}/share/${token}`;
+    navigator.clipboard.writeText(url);
+    alert("링크가 복사됐어요! 보호자에게 공유하세요.");
+  };
 
   const handlePushToggle = async () => {
     setPushLoading(true);
@@ -52,6 +98,34 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-md mx-auto px-4 -mt-3 space-y-3">
+        {/* 보호자 공유 */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 py-2 border-b border-gray-50">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">보호자 공유</p>
+          </div>
+          <div className="p-4 space-y-3">
+            <p className="text-xs text-gray-400">링크를 공유하면 보호자가 복약 현황을 확인할 수 있어요</p>
+            {shares.filter((s) => !s.expired).map((s) => (
+              <div key={s.id} className="flex items-center gap-2 bg-violet-50 rounded-xl px-3 py-2.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-violet-700">{s.label}</p>
+                  <p className="text-xs text-violet-400 truncate">/share/{s.token.slice(0, 16)}...</p>
+                </div>
+                <button onClick={() => copyLink(s.token)}
+                  className="text-xs bg-violet-600 text-white px-2.5 py-1.5 rounded-lg font-medium flex-shrink-0">
+                  복사
+                </button>
+                <button onClick={() => deleteShare(s.id)}
+                  className="text-gray-300 hover:text-red-400 transition-colors text-lg flex-shrink-0">×</button>
+              </div>
+            ))}
+            <button onClick={createShare} disabled={shareLoading}
+              className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-violet-200 rounded-xl py-3 text-sm text-violet-500 font-medium hover:border-violet-400 hover:bg-violet-50 transition-all disabled:opacity-50">
+              {shareLoading ? "생성 중..." : "+ 공유 링크 만들기"}
+            </button>
+          </div>
+        </div>
+
         {/* 알림 */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-4 py-2 border-b border-gray-50">

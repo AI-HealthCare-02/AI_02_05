@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push
+from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share
 
 logging.basicConfig(level=logging.INFO)
 
@@ -51,6 +51,7 @@ app.include_router(schedule.router)
 app.include_router(drugs.router)
 app.include_router(chat.router)
 app.include_router(push.router)
+app.include_router(share.router)
 
 
 @app.get("/health")
