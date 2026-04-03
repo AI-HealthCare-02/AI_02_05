@@ -95,7 +95,7 @@ function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClos
 }
 
 export default function SchedulePage() {
-  const [date] = useState(todayStr);
+  const [date, setDate] = useState(todayStr);
   const [showDetail, setShowDetail] = useState(false);
   const { data: schedules = [], isLoading } = useSchedule(date);
   const { data: stats } = useStats(monthStart(), todayStr());
@@ -107,6 +107,13 @@ export default function SchedulePage() {
   const pct = total ? Math.round((checked / total) * 100) : 0;
   const dayProgress = total > 0 ? getDayProgress(schedules[0], date) : null;
   const prescriptionGroups = groupByPrescription(schedules);
+  const isToday = date === todayStr();
+
+  const moveDate = (days: number) => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    setDate(d.toISOString().split("T")[0]);
+  };
 
   const handleDeleteAll = () => {
     if (confirm(`복약 일정 ${total}개를 모두 삭제할까요?`)) schedules.forEach((s) => deleteSchedule(s.id));
@@ -116,22 +123,44 @@ export default function SchedulePage() {
     items.forEach((s) => check({ scheduleId: s.id, checked: !allChecked }));
   };
 
-  const today = new Date();
-  const dateLabel = `${today.getMonth() + 1}월 ${today.getDate()}일 ${["일", "월", "화", "수", "목", "금", "토"][today.getDay()]}요일`;
+  const dateObj = new Date(date);
+  const dateLabel = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${["일", "월", "화", "수", "목", "금", "토"][dateObj.getDay()]}요일`;
+  const progressLabel = isToday ? "오늘 진행률" : `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 진행률`;
 
   return (
     <main className="min-h-screen bg-gray-50">
       {/* 헤더 */}
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-6 text-white">
         <div className="flex justify-between items-start mb-5">
-          <div>
-            <p className="text-violet-200 text-xs font-medium mb-0.5">{dateLabel}</p>
-            <h1 className="text-2xl font-bold">오늘의 복약</h1>
+          <div className="flex-1">
+            {/* 날짜 네비게이션 */}
+            <div className="flex items-center gap-2 mb-1">
+              <button onClick={() => moveDate(-1)}
+                className="w-6 h-6 flex items-center justify-center text-violet-200 hover:text-white transition-colors text-lg">
+                ‹
+              </button>
+              <button onClick={() => setDate(todayStr())}
+                className={`text-xs font-medium px-2 py-0.5 rounded-full transition-colors ${
+                  isToday ? "bg-white/20 text-white" : "text-violet-300 hover:text-white"}`}>
+                {dateLabel}
+              </button>
+              <button onClick={() => moveDate(1)}
+                className="w-6 h-6 flex items-center justify-center text-violet-200 hover:text-white transition-colors text-lg">
+                ›
+              </button>
+              {!isToday && (
+                <button onClick={() => setDate(todayStr())}
+                  className="text-xs text-violet-300 hover:text-white transition-colors ml-1">
+                  오늘
+                </button>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold">{isToday ? "오늘의 복약" : "복약 기록"}</h1>
             {dayProgress && (
               <p className="text-violet-200 text-xs mt-0.5">{dayProgress.currentDay}일차 / {dayProgress.totalDays}일</p>
             )}
           </div>
-          {total > 0 && (
+          {total > 0 && isToday && (
             <button onClick={handleDeleteAll} className="text-xs bg-white/15 px-3 py-1.5 rounded-full hover:bg-white/25 transition-colors">
               전체 삭제
             </button>
@@ -142,7 +171,7 @@ export default function SchedulePage() {
         <button className="w-full bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors"
           onClick={() => total > 0 && setShowDetail(true)}>
           <div className="flex justify-between items-center mb-3">
-            <span className="text-sm text-violet-100">오늘 진행률</span>
+            <span className="text-sm text-violet-100">{progressLabel}</span>
             <span className="text-2xl font-bold">{pct}%</span>
           </div>
           <div className="h-2 bg-white/25 rounded-full overflow-hidden">
