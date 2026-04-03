@@ -105,6 +105,7 @@ export default function SchedulePage() {
   const checked = schedules.filter((s) => s.checked).length;
   const total = schedules.length;
   const pct = total ? Math.round((checked / total) * 100) : 0;
+  const allDone = total > 0 && checked === total;
   const dayProgress = total > 0 ? getDayProgress(schedules[0], date) : null;
   const prescriptionGroups = groupByPrescription(schedules);
   const isToday = date === todayStr();
@@ -168,8 +169,11 @@ export default function SchedulePage() {
         </div>
 
         {/* 진행률 카드 */}
-        <button className="w-full bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors"
+        <button className={`w-full backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors ${allDone ? "bg-white/25" : "bg-white/15"}`}
           onClick={() => total > 0 && setShowDetail(true)}>
+          {allDone && (
+            <p className="text-center text-sm font-bold mb-2">🎉 오늘 복약 완료! 잘 하셨어요!</p>
+          )}
           <div className="flex justify-between items-center mb-3">
             <span className="text-sm text-violet-100">{progressLabel}</span>
             <span className="text-2xl font-bold">{pct}%</span>

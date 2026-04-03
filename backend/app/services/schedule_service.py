@@ -137,16 +137,27 @@ class ScheduleService:
         return {"schedule_id": str(schedule_id), "checked": checked, "checked_at": now}
 
     async def get_compliance(self, user_id: uuid.UUID, start: date, end: date) -> dict:
+        # 해당 기간에 실제로 활성화된 스케줄만 조회 (start_date~end_date 범위 고려)
         result = await self.db.execute(
-            select(MedicationSchedule.id).where(
+            select(MedicationSchedule).where(
                 MedicationSchedule.user_id == user_id,
                 MedicationSchedule.active.is_(True),
+                MedicationSchedule.start_date <= end,
+                MedicationSchedule.end_date >= start,
             )
         )
-        schedule_ids = [r[0] for r in result.all()]
-        if not schedule_ids:
+        schedules = result.scalars().all()
+        if not schedules:
             return {"compliance_rate": 0.0, "streak_days": 0, "total_checked": 0}
 
+        # 스케줄별로 실제 활성 일수 계산
+        total_expected = 0
+        for s in schedules:
+            active_start = max(s.start_date, start)
+            active_end = min(s.end_date, end)
+            total_expected += (active_end - active_start).days + 1
+
+        schedule_ids = [s.id for s in schedules]
         checks = await self.db.execute(
             select(ScheduleCheck).where(
                 ScheduleCheck.schedule_id.in_(schedule_ids),
@@ -155,8 +166,6 @@ class ScheduleService:
             )
         )
         total_checked = len(checks.scalars().all())
-        days = (end - start).days + 1
-        total_expected = len(schedule_ids) * days
         rate = round(total_checked / total_expected, 4) if total_expected else 0.0
 
         streak = await self._streak(schedule_ids)
