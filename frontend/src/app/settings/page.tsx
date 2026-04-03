@@ -58,8 +58,21 @@ export default function SettingsPage() {
 
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/share/${token}`;
-    navigator.clipboard.writeText(url);
-    alert("링크가 복사됐어요! 보호자에게 공유하세요.");
+    try {
+      navigator.clipboard.writeText(url);
+      alert("링크가 복사됐어요! 보호자에게 공유하세요.");
+    } catch {
+      // HTTP 환경 fallback
+      const el = document.createElement("textarea");
+      el.value = url;
+      el.style.position = "fixed";
+      el.style.opacity = "0";
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      alert("링크가 복사됐어요! 보호자에게 공유하세요.");
+    }
   };
 
   const handlePushToggle = async () => {
