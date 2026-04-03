@@ -18,6 +18,42 @@ class ConfirmRequest(BaseModel):
     start_date: date | None = None
 
 
+@router.get("/list")
+async def list_ocr(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: OCRService = Depends(get_ocr_service),
+):
+    results = await service.ocr_repo.get_by_user(user_id, limit=20)
+    return [
+        {
+            "id": str(r.id),
+            "image_url": r.image_url,
+            "status": r.status,
+            "prescribed_date": r.prescribed_date.isoformat() if r.prescribed_date else None,
+            "parsed_drugs": r.parsed_drugs,
+            "created_at": r.created_at.isoformat(),
+        }
+        for r in results if r.status == "done"
+    ]
+
+
+@router.delete("/{ocr_id}")
+async def delete_ocr(
+    ocr_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: OCRService = Depends(get_ocr_service),
+):
+    from sqlalchemy import delete as sql_delete
+    from app.models.medication_schedule import MedicationSchedule
+    ocr = await service.ocr_repo.get_by_id(ocr_id)
+    if not ocr or ocr.user_id != user_id:
+        raise NotFoundError("OCRResult", str(ocr_id))
+    await service.db.delete(ocr)
+    await service.db.flush()
+    await service.db.commit()
+    return {"detail": "삭제되었습니다."}
+
+
 @router.post("/submit")
 async def submit_from_url(
     body: SubmitFromURLRequest,
