@@ -1,13 +1,37 @@
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from app.api.routes import upload, ocr, schedule, drugs, auth, chat
+from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="PillMate API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    from app.core.database import AsyncSessionLocal
+    from app.services.push_service import PushService
+    from datetime import datetime
+
+    async def send_reminders():
+        now = datetime.now()
+        t = __import__('datetime').time(now.hour, now.minute)
+        async with AsyncSessionLocal() as db:
+            async with db.begin():
+                await PushService(db).send_medication_reminders(t)
+
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(send_reminders, CronTrigger(minute="*"))
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+
+app = FastAPI(title="PillMate API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,6 +50,7 @@ app.include_router(ocr.router)
 app.include_router(schedule.router)
 app.include_router(drugs.router)
 app.include_router(chat.router)
+app.include_router(push.router)
 
 
 @app.get("/health")

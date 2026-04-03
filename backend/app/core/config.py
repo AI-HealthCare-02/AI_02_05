@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     JWT_ACCESS_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_EXPIRE_DAYS: int = 30
 
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_EMAIL: str = "mailto:admin@pillmate.com"
+
     DEBUG: bool = False
 
     class Config:

@@ -1,4 +1,6 @@
-aioboto3==15.5.0
+apscheduler==3.10.4
+pywebpush==2.0.0
+
 aiobotocore==2.25.1
 aiofiles==25.1.0
 aiohappyeyeballs==2.6.1

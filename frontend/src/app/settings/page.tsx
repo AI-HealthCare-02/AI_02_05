@@ -1,13 +1,37 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { subscribePush, unsubscribePush, isPushSubscribed } from "@/lib/push";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   const user = typeof window !== "undefined"
     ? JSON.parse(localStorage.getItem("user") || "{}")
     : {};
+
+  useEffect(() => {
+    setPushEnabled(isPushSubscribed());
+  }, []);
+
+  const handlePushToggle = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribePush();
+        setPushEnabled(false);
+      } else {
+        const ok = await subscribePush();
+        setPushEnabled(ok);
+        if (!ok) alert("알림 권한을 허용해주세요.");
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -36,7 +60,30 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 처방전 등록 */}
+        {/* 알림 설정 */}
+        <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🔔</span>
+              <div>
+                <p className="text-sm font-medium text-gray-800">복약 알림</p>
+                <p className="text-xs text-gray-400">복약 시간에 알림을 보내드려요</p>
+              </div>
+            </div>
+            <button
+              onClick={handlePushToggle}
+              disabled={pushLoading}
+              className={`w-12 h-6 rounded-full transition-all relative ${
+                pushEnabled ? "bg-emerald-500" : "bg-gray-200"
+              } ${pushLoading ? "opacity-50" : ""}`}>
+              <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
+                pushEnabled ? "left-6" : "left-0.5"
+              }`} />
+            </button>
+          </div>
+        </div>
+
+        {/* 처방전 등록 */}}
         <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
           <button
             onClick={() => router.push("/upload")}
