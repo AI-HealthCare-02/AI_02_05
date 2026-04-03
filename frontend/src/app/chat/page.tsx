@@ -17,10 +17,7 @@ export default function ChatPage() {
   const contentRef = useRef("");
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setMessages(JSON.parse(saved));
-    } catch {}
+    try { const s = localStorage.getItem(STORAGE_KEY); if (s) setMessages(JSON.parse(s)); } catch {}
   }, []);
 
   useEffect(() => {
@@ -28,94 +25,92 @@ export default function ChatPage() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(messages)); } catch {}
   }, [messages]);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const send = async () => {
     if (!input.trim() || loading) return;
     const userMsg = input.trim();
     setInput("");
     contentRef.current = "";
-
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: userMsg },
-      { role: "assistant", content: "" },
-    ]);
+    setMessages((prev) => [...prev, { role: "user", content: userMsg }, { role: "assistant", content: "" }]);
     setLoading(true);
 
     const token = localStorage.getItem("access_token");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    } else {
-      headers["X-User-Id"] = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "00000000-0000-0000-0000-000000000001";
-    }
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    else headers["X-User-Id"] = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "00000000-0000-0000-0000-000000000001";
 
     try {
       const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/chat/stream`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ message: userMsg }),
+        method: "POST", headers, body: JSON.stringify({ message: userMsg }),
       });
-
       const reader = resp.body?.getReader();
       const decoder = new TextDecoder();
-
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        const lines = decoder.decode(value).split("\n");
-        for (const line of lines) {
+        for (const line of decoder.decode(value).split("\n")) {
           if (!line.startsWith("data: ")) continue;
           try {
             const data = JSON.parse(line.slice(6));
             if (data.type === "token") {
               contentRef.current += data.content;
-              const current = contentRef.current;
-              setMessages((prev) => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: "assistant", content: current };
-                return updated;
-              });
+              const cur = contentRef.current;
+              setMessages((prev) => { const u = [...prev]; u[u.length - 1] = { role: "assistant", content: cur }; return u; });
             }
           } catch {}
         }
       }
     } catch {
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: "오류가 발생했어요. 다시 시도해주세요." };
-        return updated;
-      });
-    } finally {
-      setLoading(false);
+      setMessages((prev) => { const u = [...prev]; u[u.length - 1] = { role: "assistant", content: "오류가 발생했어요. 다시 시도해주세요." }; return u; });
+    } finally { setLoading(false); }
+  };
+
+  const clearHistory = () => {
+    if (confirm("대화 기록을 모두 삭제할까요?")) {
+      setMessages([]);
+      localStorage.removeItem(STORAGE_KEY);
     }
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 flex flex-col">
-      <div className="bg-purple-700 px-4 pt-12 pb-4 text-white">
-        <h1 className="text-lg font-bold">AI 건강 상담</h1>
-        <p className="text-xs text-purple-200 mt-0.5">복약 관련 궁금한 점을 물어보세요</p>
+    <main className="min-h-screen flex flex-col bg-gray-50">
+      {/* 헤더 */}
+      <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-5 text-white">
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-xl font-bold">AI 건강 상담</h1>
+            <p className="text-violet-200 text-xs mt-0.5">복약 정보를 기반으로 맞춤 답변해드려요</p>
+          </div>
+          {messages.length > 0 && (
+            <button onClick={clearHistory} className="text-xs text-violet-300 hover:text-white transition-colors">
+              대화 초기화
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-w-md mx-auto w-full">
         {messages.length === 0 && (
-          <div className="text-center py-10">
-            <div className="text-4xl mb-3">💬</div>
-            <p className="text-gray-600 text-sm mb-4">어떤 게 궁금하세요?</p>
+          <div className="pt-4">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-3xl">🤖</span>
+              </div>
+              <p className="text-gray-700 font-semibold">무엇이 궁금하세요?</p>
+              <p className="text-gray-400 text-xs mt-1">현재 복약 중인 약물을 기반으로 답변해드려요</p>
+            </div>
             <div className="space-y-2">
               {[
-                "지금 먹는 약 부작용이 뭐예요?",
-                "지금 먹는 약에 대해 알려줘",
-                "약 먹고 술 마셔도 돼요?",
-              ].map((q) => (
-                <button key={q} onClick={() => setInput(q)}
-                  className="block w-full text-left text-sm bg-white border border-gray-300 rounded-xl px-4 py-3 text-gray-800 font-medium hover:border-purple-500 transition-colors">
-                  {q}
+                { icon: "💊", text: "지금 먹는 약 부작용이 뭐예요?" },
+                { icon: "📋", text: "지금 먹는 약에 대해 알려줘" },
+                { icon: "🍺", text: "약 먹고 술 마셔도 돼요?" },
+              ].map(({ icon, text }) => (
+                <button key={text} onClick={() => setInput(text)}
+                  className="flex items-center gap-3 w-full text-left bg-white border border-gray-100 rounded-2xl px-4 py-3.5 hover:border-violet-300 hover:shadow-sm transition-all">
+                  <span className="text-lg">{icon}</span>
+                  <span className="text-sm text-gray-700 font-medium">{text}</span>
                 </button>
               ))}
             </div>
@@ -123,16 +118,22 @@ export default function ChatPage() {
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} items-end gap-2`}>
+            {msg.role === "assistant" && (
+              <div className="w-7 h-7 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0 mb-0.5">
+                <span className="text-sm">🤖</span>
+              </div>
+            )}
+            <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed
               ${msg.role === "user"
-                ? "bg-purple-700 text-white rounded-br-sm font-medium"
-                : "bg-white text-gray-900 shadow-sm rounded-bl-sm border border-gray-200"}`}>
+                ? "bg-violet-600 text-white rounded-br-sm"
+                : "bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100"}`}>
               {msg.content || (
                 <span className="flex gap-1 items-center h-4">
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.15s" }} />
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.3s" }} />
+                  {[0, 0.15, 0.3].map((d) => (
+                    <span key={d} className="w-1.5 h-1.5 bg-violet-300 rounded-full animate-bounce"
+                      style={{ animationDelay: `${d}s` }} />
+                  ))}
                 </span>
               )}
             </div>
@@ -141,25 +142,25 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-gray-200 bg-white px-4 py-3 sticky bottom-0">
+      {/* 입력창 */}
+      <div className="bg-white border-t border-gray-100 px-4 py-3 sticky bottom-0 shadow-lg">
         <div className="flex gap-2 max-w-md mx-auto">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && send()}
-            placeholder="질문을 입력하세요..."
-            style={{ color: "#111827" }}
-            className="flex-1 border border-gray-300 rounded-2xl px-4 py-2.5 text-sm
-              focus:outline-none focus:border-purple-500 bg-gray-50 placeholder-gray-500"
+            placeholder="궁금한 점을 입력하세요..."
+            className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-800
+              focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-gray-50 placeholder-gray-400 transition-all"
           />
           <button onClick={send} disabled={loading || !input.trim()}
-            className="w-10 h-10 bg-purple-700 text-white rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-purple-800 transition-colors flex-shrink-0">
-            ↑
+            className="w-10 h-10 bg-violet-600 text-white rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-violet-700 transition-colors flex-shrink-0 shadow-sm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
+            </svg>
           </button>
         </div>
-        <p className="text-xs text-gray-500 text-center mt-2">
-          ※ AI 답변은 참고용이며 의료 행위를 대체하지 않습니다
-        </p>
+        <p className="text-xs text-gray-300 text-center mt-2">AI 답변은 참고용이며 의료 행위를 대체하지 않습니다</p>
       </div>
     </main>
   );
