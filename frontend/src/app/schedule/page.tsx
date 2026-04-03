@@ -158,6 +158,10 @@ export default function SchedulePage() {
   const [showDetail, setShowDetail] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [interactions, setInteractions] = useState<{ severity: string; description: string }[]>([]);
+  const { data: schedules = [], isLoading } = useSchedule(date);
+  const { data: stats } = useStats(monthStart(), todayStr());
+  const { mutate: check } = useCheckSchedule();
+  const { mutate: deleteSchedule } = useDeleteSchedule();
 
   useEffect(() => {
     if (schedules.length < 2) return;
@@ -169,10 +173,6 @@ export default function SchedulePage() {
       method: "POST", headers, body: JSON.stringify(names),
     }).then((r) => r.json()).then((d) => setInteractions(d.interactions ?? [])).catch(() => {});
   }, [schedules.length]);
-  const { data: schedules = [], isLoading } = useSchedule(date);
-  const { data: stats } = useStats(monthStart(), todayStr());
-  const { mutate: check } = useCheckSchedule();
-  const { mutate: deleteSchedule } = useDeleteSchedule();
 
   const checked = schedules.filter((s) => s.checked).length;
   const total = schedules.length;
