@@ -41,6 +41,16 @@ function groupByTime(schedules: ScheduleItem[]) {
   return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
 
+function groupByPrescription(schedules: ScheduleItem[]) {
+  const map = new Map<string, { prescribed_date: string; items: ScheduleItem[] }>();
+  for (const s of schedules) {
+    const key = s.ocr_result_id;
+    if (!map.has(key)) map.set(key, { prescribed_date: s.prescribed_date, items: [] });
+    map.get(key)!.items.push(s);
+  }
+  return Array.from(map.values()).sort((a, b) => b.prescribed_date.localeCompare(a.prescribed_date));
+}
+
 function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClose: () => void }) {
   const done = schedules.filter((s) => s.checked);
   const pending = schedules.filter((s) => !s.checked);
@@ -90,7 +100,7 @@ export default function SchedulePage() {
 
   const checked = schedules.filter((s) => s.checked).length;
   const dayProgress = schedules.length > 0 ? getDayProgress(schedules[0], date) : null;
-  const groups = groupByTime(schedules);
+  const prescriptionGroups = groupByPrescription(schedules);
 
   const handleDeleteAll = () => {
     if (confirm(`복약 일정 ${schedules.length}개를 모두 삭제할까요?`)) {
@@ -166,57 +176,62 @@ export default function SchedulePage() {
             </div>
           )}
 
-          {groups.map(([time, items]) => {
-            const allChecked = items.every((s) => s.checked);
-            const someChecked = items.some((s) => s.checked);
-            const label = getTimeLabel(time);
+          {prescriptionGroups.map(({ prescribed_date, items }) => {
+            const timeGroups = groupByTime(items);
+            const allDone = items.every((s) => s.checked);
             const { currentDay, totalDays } = getDayProgress(items[0], date);
-
             return (
-              <div key={time} className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all ${allChecked ? "opacity-70" : ""}`}>
-                {/* 그룹 헤더 */}
-                <div className={`flex items-center justify-between px-4 py-3 ${allChecked ? "bg-emerald-50" : "bg-gray-50"}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-700">{time}</span>
-                    {label && <span className="text-xs text-gray-400">{label}</span>}
-                    <span className="text-xs text-gray-300">· {currentDay}일차/{totalDays}일</span>
-                  </div>
-                  <button
-                    onClick={() => handleGroupCheck(items)}
-                    className={`text-xs px-3 py-1 rounded-full font-medium transition-all
-                      ${allChecked
-                        ? "bg-emerald-100 text-emerald-700"
-                        : someChecked
-                          ? "bg-amber-100 text-amber-600"
-                          : "bg-gray-100 text-gray-500 hover:bg-emerald-100 hover:text-emerald-700"
-                      }`}>
-                    {allChecked ? "✓ 완료" : "완료 처리"}
-                  </button>
+              <div key={prescribed_date} className="space-y-2">
+                <div className="flex items-center gap-2 px-1 pt-1">
+                  <span className="text-xs font-bold text-purple-600">📋 {prescribed_date} 처방</span>
+                  <span className="text-xs text-gray-400">{currentDay}일차 / {totalDays}일</span>
+                  {allDone && <span className="text-xs text-emerald-600 ml-auto">✓ 완료</span>}
                 </div>
-
-                {/* 약물 목록 */}
-                <div className="divide-y divide-gray-50">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-                      <button
-                        onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                          ${item.checked ? "bg-emerald-600 border-emerald-600 text-white" : "border-gray-300 hover:border-emerald-400"}`}>
-                        {item.checked && <span className="text-[10px]">✓</span>}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
-                          {item.drug_name}
-                        </p>
-                        {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
+                {timeGroups.map(([time, timeItems]) => {
+                  const timeAllChecked = timeItems.every((s) => s.checked);
+                  const timeSomeChecked = timeItems.some((s) => s.checked);
+                  const label = getTimeLabel(time);
+                  return (
+                    <div key={time} className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all ${timeAllChecked ? "opacity-70" : ""}`}>
+                      <div className={`flex items-center justify-between px-4 py-3 ${timeAllChecked ? "bg-emerald-50" : "bg-gray-50"}`}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-gray-700">{time}</span>
+                          {label && <span className="text-xs text-gray-400">{label}</span>}
+                        </div>
+                        <button
+                          onClick={() => handleGroupCheck(timeItems)}
+                          className={`text-xs px-3 py-1 rounded-full font-medium transition-all
+                            ${timeAllChecked ? "bg-emerald-100 text-emerald-700"
+                              : timeSomeChecked ? "bg-amber-100 text-amber-600"
+                              : "bg-gray-100 text-gray-500 hover:bg-emerald-100 hover:text-emerald-700"}`}>
+                          {timeAllChecked ? "✓ 완료" : "완료 처리"}
+                        </button>
                       </div>
-                      <button onClick={() => deleteSchedule(item.id)}
-                        className="text-gray-300 hover:text-red-400 transition-colors text-lg flex-shrink-0">
-                        ×
-                      </button>
+                      <div className="divide-y divide-gray-50">
+                        {timeItems.map((item) => (
+                          <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                            <button
+                              onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                                ${item.checked ? "bg-emerald-600 border-emerald-600 text-white" : "border-gray-300 hover:border-emerald-400"}`}>
+                              {item.checked && <span className="text-[10px]">✓</span>}
+                            </button>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium ${item.checked ? "line-through text-gray-400" : "text-gray-800"}`}>
+                                {item.drug_name}
+                              </p>
+                              {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
+                            </div>
+                            <button onClick={() => deleteSchedule(item.id)}
+                              className="text-gray-300 hover:text-red-400 transition-colors text-lg flex-shrink-0">
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             );
           })}

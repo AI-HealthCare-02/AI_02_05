@@ -24,6 +24,8 @@ export interface ScheduleItem {
   checked_at: string | null;
   start_date: string;
   end_date: string;
+  ocr_result_id: string;
+  prescribed_date: string;
 }
 
 export interface StatsResponse {
