@@ -192,7 +192,8 @@ export default function SettingsPage() {
             </div>
             <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">1.0.0</span>
           </div>
-          <button className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors">
+          <button onClick={() => router.push("/terms")}
+            className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-gray-100 rounded-xl flex items-center justify-center">
                 <span className="text-lg">📄</span>
