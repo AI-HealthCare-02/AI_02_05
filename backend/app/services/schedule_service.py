@@ -71,6 +71,63 @@ class ScheduleService:
         await self.db.flush()
         return schedules
 
+    async def get_monthly_status(self, user_id: uuid.UUID, year: int, month: int) -> dict:
+        from calendar import monthrange
+        first = date(year, month, 1)
+        last = date(year, month, monthrange(year, month)[1])
+
+        # 해당 월에 활성화된 스케줄
+        result = await self.db.execute(
+            select(MedicationSchedule).where(
+                MedicationSchedule.user_id == user_id,
+                MedicationSchedule.active.is_(True),
+                MedicationSchedule.start_date <= last,
+                MedicationSchedule.end_date >= first,
+            )
+        )
+        schedules = result.scalars().all()
+        if not schedules:
+            return {}
+
+        schedule_ids = [s.id for s in schedules]
+        checks = await self.db.execute(
+            select(ScheduleCheck).where(
+                ScheduleCheck.schedule_id.in_(schedule_ids),
+                ScheduleCheck.check_date.between(first, last),
+            )
+        )
+        check_rows = checks.scalars().all()
+
+        # 날짜별 체크 맵
+        checked_map: dict[str, set] = {}
+        for c in check_rows:
+            key = c.check_date.isoformat()
+            if key not in checked_map:
+                checked_map[key] = set()
+            if c.checked_at:
+                checked_map[key].add(str(c.schedule_id))
+
+        # 날짜별 상태 계산
+        daily: dict[str, str] = {}
+        cursor = first
+        while cursor <= last:
+            day_str = cursor.isoformat()
+            active = [s for s in schedules if s.start_date <= cursor <= s.end_date]
+            if not active:
+                cursor += timedelta(days=1)
+                continue
+            done = len(checked_map.get(day_str, set()))
+            total = len(active)
+            if done == 0:
+                daily[day_str] = "none"
+            elif done >= total:
+                daily[day_str] = "full"
+            else:
+                daily[day_str] = "partial"
+            cursor += timedelta(days=1)
+
+        return daily
+
     async def get_for_date(self, user_id: uuid.UUID, target: date) -> list[dict]:
         from app.models.ocr_result import OCRResult
         result = await self.db.execute(

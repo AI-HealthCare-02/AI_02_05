@@ -12,6 +12,16 @@ class CheckRequest(BaseModel):
     checked: bool
 
 
+@router.get("/monthly")
+async def get_monthly(
+    year: int = Query(...),
+    month: int = Query(...),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: ScheduleService = Depends(get_schedule_service),
+):
+    return await service.get_monthly_status(user_id, year, month)
+
+
 @router.get("/stats")
 async def get_stats(
     start: date = Query(...),

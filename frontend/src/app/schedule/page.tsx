@@ -97,7 +97,16 @@ function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClos
 function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d: string) => void; onClose: () => void }) {
   const [viewYear, setViewYear] = useState(new Date(date).getFullYear());
   const [viewMonth, setViewMonth] = useState(new Date(date).getMonth());
+  const [monthlyStatus, setMonthlyStatus] = useState<Record<string, string>>({});
   const today = todayStr();
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/schedule/monthly?year=${viewYear}&month=${viewMonth + 1}`, { headers })
+      .then((r) => r.json()).then(setMonthlyStatus).catch(() => {});
+  }, [viewYear, viewMonth]);
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -132,20 +141,35 @@ function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d:
             const isToday = d === today;
             const isSun = i % 7 === 0;
             const isSat = i % 7 === 6;
+            const status = monthlyStatus[d];
             return (
               <button key={i} onClick={() => { onSelect(d); onClose(); }}
-                className={`aspect-square flex items-center justify-center rounded-full text-sm font-medium transition-all
+                className={`flex flex-col items-center justify-center py-1 rounded-xl text-sm font-medium transition-all
                   ${isSelected ? "bg-violet-600 text-white" : isToday ? "bg-violet-100 text-violet-600" : "hover:bg-gray-100"}
                   ${!isSelected && isSun ? "text-red-400" : ""}
                   ${!isSelected && isSat ? "text-blue-400" : ""}
                   ${!isSelected && !isSun && !isSat ? "text-gray-700" : ""}`}>
                 {day}
+                {status && (
+                  <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                    status === "full" ? "bg-emerald-400" :
+                    status === "partial" ? "bg-amber-400" :
+                    "bg-gray-300"}`} />
+                )}
               </button>
             );
           })}
         </div>
+        <div className="flex items-center justify-center gap-4 mt-3 mb-1">
+          {[["bg-emerald-400", "완료"], ["bg-amber-400", "일부"], ["bg-gray-300", "미완료"]].map(([color, label]) => (
+            <div key={label} className="flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-full ${color}`} />
+              <span className="text-xs text-gray-400">{label}</span>
+            </div>
+          ))}
+        </div>
         <button onClick={() => { onSelect(today); onClose(); }}
-          className="w-full mt-4 text-sm text-violet-600 font-semibold py-2 bg-violet-50 rounded-xl hover:bg-violet-100 transition-colors">
+          className="w-full mt-2 text-sm text-violet-600 font-semibold py-2 bg-violet-50 rounded-xl hover:bg-violet-100 transition-colors">
           오늘로 이동
         </button>
       </div>
