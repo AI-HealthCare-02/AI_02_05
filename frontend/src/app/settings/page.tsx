@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "@/lib/push";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -99,7 +98,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-full overflow-hidden bg-white/20 flex items-center justify-center flex-shrink-0">
             {user.profile_img_url
-              ? <Image src={user.profile_img_url} alt="프로필" width={56} height={56} className="object-cover" />
+              ? <img src={user.profile_img_url} alt="프로필" className="w-14 h-14 object-cover" referrerPolicy="no-referrer" />
               : <span className="text-2xl">👤</span>
             }
           </div>
