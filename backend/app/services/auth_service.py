@@ -52,7 +52,9 @@ class AuthService:
         logger.info(f"카카오 유저: {kakao_user}")
 
         kakao_id = str(kakao_user["id"])
-        nickname = kakao_user.get("kakao_account", {}).get("profile", {}).get("nickname", "사용자")
+        profile = kakao_user.get("kakao_account", {}).get("profile", {})
+        nickname = profile.get("nickname", "사용자")
+        profile_img_url = profile.get("profile_image_url", None)
 
         user = await self.user_repo.get_by_oauth("kakao", kakao_id)
         is_new = False
@@ -61,8 +63,13 @@ class AuthService:
                 oauth_provider="kakao",
                 oauth_id=kakao_id,
                 nickname=nickname,
+                profile_img_url=profile_img_url,
             )
             is_new = True
+        else:
+            # 프로필 정보 업데이트
+            user.nickname = nickname
+            user.profile_img_url = profile_img_url
 
         access_token = self._create_token(str(user.id), "access")
         refresh_token = self._create_token(str(user.id), "refresh")
@@ -70,7 +77,12 @@ class AuthService:
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "user": {"id": str(user.id), "nickname": nickname, "is_new": is_new},
+            "user": {
+                "id": str(user.id),
+                "nickname": nickname,
+                "profile_img_url": profile_img_url,
+                "is_new": is_new,
+            },
         }
 
     def _create_token(self, user_id: str, token_type: str) -> str:
