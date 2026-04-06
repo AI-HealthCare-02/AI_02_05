@@ -23,6 +23,19 @@ export default function UploadPage() {
 
   const isLoading = isPending || compressing;
 
+  const handleManualEntry = async () => {
+    const token = localStorage.getItem("access_token");
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/ocr/manual`, {
+        method: "POST", headers,
+      });
+      const data = await res.json();
+      router.push(`/ocr/${data.ocr_id}`);
+    } catch {}
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col">
       {/* 헤더 */}
@@ -89,6 +102,18 @@ export default function UploadPage() {
         </div>
 
         <p className="text-xs text-gray-300 text-center">※ 화면을 찍은 사진은 인식률이 낮을 수 있어요</p>
+
+        {/* 직접 입력 */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
+          <p className="text-sm font-bold text-gray-800 mb-1">📝 사진 없이 직접 입력</p>
+          <p className="text-xs text-gray-400 mb-3">스마트폰이 없거나 사진 찍기가 어려울 때</p>
+          <button
+            onClick={handleManualEntry}
+            disabled={isLoading}
+            className="w-full border-2 border-violet-200 text-violet-600 font-semibold py-3 rounded-xl hover:bg-violet-50 transition-colors disabled:opacity-40">
+            약물 직접 입력하기
+          </button>
+        </div>
       </div>
     </main>
   );

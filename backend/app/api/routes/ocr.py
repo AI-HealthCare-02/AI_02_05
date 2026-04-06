@@ -19,6 +19,19 @@ class ConfirmRequest(BaseModel):
     disease_name: str | None = None
 
 
+@router.post("/manual")
+async def create_manual(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    service: OCRService = Depends(get_ocr_service),
+):
+    from app.models.ocr_result import OCRResult
+    ocr = OCRResult(user_id=user_id, image_url="", status="done", parsed_drugs=[])
+    service.db.add(ocr)
+    await service.db.flush()
+    await service.db.commit()
+    return {"ocr_id": str(ocr.id), "status": "done"}
+
+
 @router.get("/list")
 async def list_ocr(
     user_id: uuid.UUID = Depends(get_current_user_id),
