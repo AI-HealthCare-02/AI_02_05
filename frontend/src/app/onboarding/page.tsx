@@ -41,6 +41,11 @@ export default function OnboardingPage() {
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
 
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) router.replace("/login");
+  }, [router]);
+
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem("onboarding_done", "true");
