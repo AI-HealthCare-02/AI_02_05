@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSchedule, useCheckSchedule, useDeleteSchedule, useStats } from "@/hooks/useSchedule";
 import { ScheduleItem } from "@/types";
+import { ScheduleSkeleton } from "@/components/Skeleton";
 
 const todayStr = () => new Date().toISOString().split("T")[0];
 const monthStart = () => {
@@ -355,12 +356,7 @@ export default function SchedulePage() {
 
         {/* 스케줄 목록 */}
         <div className="space-y-4">
-          {isLoading && (
-            <div className="flex flex-col items-center py-12 text-gray-400">
-              <div className="w-8 h-8 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin mb-3" />
-              <p className="text-sm">불러오는 중...</p>
-            </div>
-          )}
+          {isLoading && <ScheduleSkeleton />}
           {!isLoading && total === 0 && (
             <div className="bg-white rounded-3xl p-8 text-center shadow-sm">
               <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
