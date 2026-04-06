@@ -335,7 +335,7 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* 약물 상호작용 경고 */}}
+        {/* 약물 상호작용 경고 */}
         {interactions.length > 0 && (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-2">
             <p className="text-xs font-bold text-red-600">⚠️ 약물 상호작용 경고</p>
