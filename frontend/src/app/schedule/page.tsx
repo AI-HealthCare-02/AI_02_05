@@ -206,6 +206,14 @@ export default function SchedulePage() {
   const prescriptionGroups = groupByPrescription(schedules);
   const isToday = date === todayStr();
 
+  // 재처방 알림 (처방 종료 3일 이내)
+  const refillAlerts = prescriptionGroups.filter(({ items }) => {
+    const endDate = new Date(items[0].end_date);
+    const today = new Date(todayStr());
+    const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / 86400000);
+    return daysLeft >= 0 && daysLeft <= 3;
+  });
+
   const moveDate = (days: number) => {
     const d = new Date(date);
     d.setDate(d.getDate() + days);
@@ -302,7 +310,32 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* 약물 상호작용 경고 */}
+        {/* 재처방 알림 배너 */}
+        {isToday && refillAlerts.length > 0 && (
+          <div className="space-y-2">
+            {refillAlerts.map(({ prescribed_date, items }) => {
+              const endDate = new Date(items[0].end_date);
+              const today = new Date(todayStr());
+              const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / 86400000);
+              const diseaseName = items[0].disease_name;
+              return (
+                <div key={prescribed_date} className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                  <span className="text-xl flex-shrink-0">💊</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-800">
+                      {diseaseName ? `${diseaseName} 약` : `${formatDate(prescribed_date)} 처방약`}이 곳 떨어져요
+                    </p>
+                    <p className="text-xs text-amber-600">
+                      {daysLeft === 0 ? "오늘이 마지막 복용일이에요" : `${daysLeft}일 후 복용 종료 · 병원 방문을 고려해보세요`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* 약물 상호작용 경고 */}}
         {interactions.length > 0 && (
           <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-2">
             <p className="text-xs font-bold text-red-600">⚠️ 약물 상호작용 경고</p>
@@ -345,12 +378,16 @@ export default function SchedulePage() {
             const timeGroups = groupByTime(items);
             const allDone = items.every((s) => s.checked);
             const { currentDay, totalDays } = getDayProgress(items[0], date);
+            const diseaseName = items[0].disease_name;
             return (
               <div key={prescribed_date} className="space-y-2">
                 {/* 처방전 헤더 */}
                 <div className="flex items-center gap-2 px-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                  <span className="text-xs font-bold text-violet-600">{formatDate(prescribed_date)} 처방</span>
+                  <span className="text-xs font-bold text-violet-600">
+                    {formatDate(prescribed_date)} 처방
+                    {diseaseName && <span className="ml-1 text-violet-400">· {diseaseName}</span>}
+                  </span>
                   <span className="text-xs text-gray-400">{currentDay}일차 / {totalDays}일</span>
                   {allDone && <span className="ml-auto text-xs text-violet-500 font-medium">✓ 모두 완료</span>}
                 </div>
@@ -360,30 +397,36 @@ export default function SchedulePage() {
                   const timeSomeChecked = timeItems.some((s) => s.checked);
                   const label = getTimeLabel(time);
                   const icon = TIME_ICONS[label] ?? "💊";
+                  const checkedCount = timeItems.filter(s => s.checked).length;
                   return (
                     <div key={time} className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all ${timeAllChecked ? "opacity-60" : ""}`}>
-                      {/* 시간대 헤더 */}
+                      {/* 약봉투 헤더 */}
                       <div className={`flex items-center justify-between px-4 py-3 ${timeAllChecked ? "bg-violet-50" : "bg-gray-50/80"}`}>
                         <div className="flex items-center gap-2">
                           <span className="text-base">{icon}</span>
-                          <span className="text-sm font-bold text-gray-800">{time}</span>
-                          {label && <span className="text-xs text-gray-400">{label}</span>}
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold text-gray-800">{time}</span>
+                              {label && <span className="text-xs text-gray-400">{label}</span>}
+                            </div>
+                            <p className="text-xs text-gray-400">💊 {timeItems.length}종류 약봉투{timeAllChecked ? " · 복용 완료" : timeSomeChecked ? ` · ${checkedCount}/${timeItems.length} 완료` : ""}</p>
+                          </div>
                         </div>
                         <button onClick={() => handleGroupCheck(timeItems)}
                           className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all
                             ${timeAllChecked ? "bg-violet-100 text-violet-600"
                               : timeSomeChecked ? "bg-amber-100 text-amber-600"
                               : "bg-violet-600 text-white hover:bg-violet-700"}`}>
-                          {timeAllChecked ? "✓ 완료" : "완료 처리"}
+                          {timeAllChecked ? "✓ 복용 완료" : "복용 완료"}
                         </button>
                       </div>
 
-                      {/* 약물 목록 */}
+                      {/* 약물 목록 (접기/펼치기) */}
                       <div className="divide-y divide-gray-50">
                         {timeItems.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 px-4 py-3.5">
+                          <div key={item.id} className="flex items-center gap-3 px-4 py-3">
                             <button onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
-                              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
                                 ${item.checked ? "bg-violet-600 border-violet-600 text-white" : "border-gray-200 hover:border-violet-400"}`}>
                               {item.checked && <span className="text-[10px] font-bold">✓</span>}
                             </button>
@@ -391,7 +434,7 @@ export default function SchedulePage() {
                               <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-300" : "text-gray-800"}`}>
                                 {item.drug_name}
                               </p>
-                              {item.dosage && <p className="text-xs text-gray-400 mt-0.5">1회 {item.dosage}</p>}
+                              {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
                             </div>
                             <button onClick={() => deleteSchedule(item.id)}
                               className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 text-lg">

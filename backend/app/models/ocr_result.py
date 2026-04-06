@@ -17,6 +17,7 @@ class OCRResult(Base):
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
     parsed_drugs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     prescribed_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    disease_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
 

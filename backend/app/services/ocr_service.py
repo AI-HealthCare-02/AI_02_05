@@ -67,10 +67,13 @@ class OCRService:
     async def confirm_and_generate_schedule(
         self, ocr_id: uuid.UUID, user_id: uuid.UUID,
         drugs: list[dict], start_date: date | None = None,
+        disease_name: str | None = None,
     ) -> dict:
         ocr = await self.ocr_repo.get_by_id(ocr_id)
         if not ocr:
             raise NotFoundError("OCRResult", str(ocr_id))
+        if disease_name:
+            ocr.disease_name = disease_name
         await self.ocr_repo.update_result(ocr_id, status="confirmed", parsed_drugs=drugs)
         inputs = [
             ScheduleCreateInput(

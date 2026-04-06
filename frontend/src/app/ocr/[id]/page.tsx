@@ -19,6 +19,7 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
   const [polling, setPolling] = useState(true);
   const [manualMode, setManualMode] = useState(false);
   const [loadingDots, setLoadingDots] = useState(0);
+  const [diseaseName, setDiseaseName] = useState("");
   const { data, isError } = useOCRStatus(id, polling);
   const { mutate: confirm, isPending: isConfirming } = useConfirm(id);
 
@@ -81,6 +82,18 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
           <p className="leading-relaxed">AI 인식 결과가 실제 처방전과 다를 수 있어요. 처방전 원본과 대조 후 수정해주세요.</p>
         </div>
 
+        {/* 질환명 입력 */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <p className="text-xs font-semibold text-gray-500 mb-1.5">질환명 <span className="text-gray-300">(선택)</span></p>
+          <input
+            value={diseaseName}
+            onChange={(e) => setDiseaseName(e.target.value)}
+            placeholder="예: 고혁압, 당뇨, 고지혁증..."
+            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+          />
+          <p className="text-xs text-gray-400 mt-1.5">입력하면 복약 스케줄에서 질환명으로 분류되어 보여요</p>
+        </div>
+
         {drugs.map((drug, i) => (
           <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-violet-50">
@@ -130,7 +143,7 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
       {/* 하단 고정 버튼 */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-4 py-4 shadow-lg">
         <button
-          onClick={() => confirm(drugs, { onSuccess: () => router.push("/schedule") })}
+          onClick={() => confirm({ drugs, disease_name: diseaseName || undefined }, { onSuccess: () => router.push("/schedule") })}
           disabled={isConfirming || drugs.length === 0 || drugs.every((d) => !d.name)}
           className="w-full bg-violet-600 text-white font-bold py-4 rounded-2xl disabled:opacity-40 hover:bg-violet-700 transition-colors">
           {isConfirming ? "스케줄 생성 중..." : `복약 스케줄 생성하기 (${drugs.filter(d => d.name).length}개 약물)`}

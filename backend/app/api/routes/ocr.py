@@ -16,6 +16,7 @@ class SubmitFromURLRequest(BaseModel):
 class ConfirmRequest(BaseModel):
     drugs: list[dict]
     start_date: date | None = None
+    disease_name: str | None = None
 
 
 @router.get("/list")
@@ -92,4 +93,5 @@ async def confirm(
         user_id=user_id,
         drugs=body.drugs,
         start_date=body.start_date,
+        disease_name=body.disease_name,
     )

@@ -35,8 +35,8 @@ export function useOCRStatus(ocrId: string | null, enabled: boolean) {
 
 export function useConfirm(ocrId: string) {
   return useMutation({
-    mutationFn: async (drugs: ParsedDrug[]) => {
-      const { data } = await api.post(`/ocr/${ocrId}/confirm`, { drugs });
+    mutationFn: async ({ drugs, disease_name }: { drugs: ParsedDrug[]; disease_name?: string }) => {
+      const { data } = await api.post(`/ocr/${ocrId}/confirm`, { drugs, disease_name });
       return data;
     },
   });

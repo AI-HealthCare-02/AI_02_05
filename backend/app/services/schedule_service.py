@@ -131,7 +131,7 @@ class ScheduleService:
     async def get_for_date(self, user_id: uuid.UUID, target: date) -> list[dict]:
         from app.models.ocr_result import OCRResult
         result = await self.db.execute(
-            select(MedicationSchedule, ScheduleCheck, OCRResult.prescribed_date)
+            select(MedicationSchedule, ScheduleCheck, OCRResult.prescribed_date, OCRResult.disease_name)
             .outerjoin(
                 ScheduleCheck,
                 (ScheduleCheck.schedule_id == MedicationSchedule.id)
@@ -158,8 +158,9 @@ class ScheduleService:
                 "end_date": s.end_date.isoformat(),
                 "ocr_result_id": str(s.ocr_result_id),
                 "prescribed_date": prescribed_date.isoformat() if prescribed_date else s.start_date.isoformat(),
+                "disease_name": disease_name,
             }
-            for s, check, prescribed_date in result.all()
+            for s, check, prescribed_date, disease_name in result.all()
         ]
 
     async def check(self, schedule_id: uuid.UUID, user_id: uuid.UUID, checked: bool) -> dict:

@@ -26,6 +26,7 @@ export interface ScheduleItem {
   end_date: string;
   ocr_result_id: string;
   prescribed_date: string;
+  disease_name: string | null;
 }
 
 export interface StatsResponse {
