@@ -9,13 +9,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/clinicalcare
-            git pull origin main
-            docker-compose build --no-cache backend frontend
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          HOST: ${{ secrets.EC2_HOST }}
+          USER: ${{ secrets.EC2_USER }}
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem $USER@$HOST "
+            cd ~/clinicalcare &&
+            git pull origin main &&
+            docker-compose build --no-cache backend frontend &&
             docker-compose up -d
+          "
+          rm -f key.pem
