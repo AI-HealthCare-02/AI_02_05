@@ -1,0 +1,29 @@
+name: DB Backup
+
+on:
+  schedule:
+    - cron: '0 17 * * *'  # 매일 새벽 2시 KST (UTC 17:00)
+  workflow_dispatch:       # 수동 실행 가능
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backup PostgreSQL to S3
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes -i key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} '
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            BACKUP_FILE="backup_${TIMESTAMP}.sql"
+            docker exec clinicalcare-db-1 pg_dump -U postgres clinicalcare > /tmp/${BACKUP_FILE}
+            docker run --rm \
+              -e AWS_ACCESS_KEY_ID=$(grep AWS_ACCESS_KEY ~/clinicalcare/backend/.env | cut -d= -f2) \
+              -e AWS_SECRET_ACCESS_KEY=$(grep AWS_SECRET_KEY ~/clinicalcare/backend/.env | cut -d= -f2) \
+              -e AWS_DEFAULT_REGION=ap-northeast-2 \
+              -v /tmp:/tmp \
+              amazon/aws-cli s3 cp /tmp/${BACKUP_FILE} s3://clinicalcare-prescriptions/backups/${BACKUP_FILE}
+            rm /tmp/${BACKUP_FILE}
+            echo "Backup completed: ${BACKUP_FILE}"
+          '
+          rm -f key.pem
