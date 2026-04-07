@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, date
-from sqlalchemy import String, Text, Date, DateTime, ForeignKey, Float, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import String, Text, Date, DateTime, ForeignKey, Float, text, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base
 
@@ -15,7 +15,7 @@ class OCRResult(Base):
     raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
-    parsed_drugs: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    parsed_drugs: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     prescribed_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     disease_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=text("now()"))
