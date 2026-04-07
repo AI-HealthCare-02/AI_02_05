@@ -18,10 +18,12 @@ export default function SettingsPage() {
   const [user, setUser] = useState<{ nickname?: string; profile_img_url?: string }>({});
   const [shares, setShares] = useState<ShareToken[]>([]);
   const [shareLoading, setShareLoading] = useState(false);
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">("medium");
 
   useEffect(() => {
     try { setUser(JSON.parse(localStorage.getItem("user") || "{}")); } catch {}
     setPushEnabled(isPushSubscribed());
+    setFontSize((localStorage.getItem("font_size") ?? "medium") as "small" | "medium" | "large");
     loadShares();
   }, []);
 
@@ -72,6 +74,13 @@ export default function SettingsPage() {
       document.body.removeChild(el);
       alert("링크가 복사됐어요! 보호자에게 공유하세요.");
     }
+  };
+
+  const handleFontSize = (size: "small" | "medium" | "large") => {
+    setFontSize(size);
+    localStorage.setItem("font_size", size);
+    const sizeMap = { small: "14px", medium: "16px", large: "19px" };
+    document.documentElement.style.fontSize = sizeMap[size];
   };
 
   const handlePushToggle = async () => {
@@ -135,6 +144,33 @@ export default function SettingsPage() {
               className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-violet-200 rounded-xl py-3 text-sm text-violet-500 font-medium hover:border-violet-400 hover:bg-violet-50 transition-all disabled:opacity-50">
               {shareLoading ? "생성 중..." : "+ 공유 링크 만들기"}
             </button>
+          </div>
+        </div>
+
+        {/* 글씨 크기 */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-4 py-2 border-b border-gray-50">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">글씨 크기</p>
+          </div>
+          <div className="px-4 py-4">
+            <p className="text-xs text-gray-400 mb-3">어르신이나 시력이 좋지 않으신 분들을 위한 설정이에요</p>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { key: "small", label: "작게", size: "text-xs" },
+                { key: "medium", label: "보통", size: "text-sm" },
+                { key: "large", label: "크게", size: "text-base" },
+              ] as const).map(({ key, label, size }) => (
+                <button key={key} onClick={() => handleFontSize(key)}
+                  className={`py-3 rounded-xl font-semibold transition-all border-2 ${
+                    fontSize === key
+                      ? "border-violet-600 bg-violet-50 text-violet-600"
+                      : "border-gray-100 bg-gray-50 text-gray-500 hover:border-violet-300"
+                  } ${size}`}>
+                  {label}
+                  <span className="block text-xs mt-0.5 font-normal opacity-60">가나다</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
