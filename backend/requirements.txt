@@ -1,6 +1,10 @@
 apscheduler==3.10.4
 pywebpush==2.0.0
 prometheus-fastapi-instrumentator==6.1.0
+pytest==8.3.5
+pytest-asyncio==0.24.0
+httpx==0.28.1
+aiosqlite==0.20.0
 aioboto3==15.5.0
 aiobotocore==2.25.1
 aiofiles==25.1.0
