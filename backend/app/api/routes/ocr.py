@@ -57,11 +57,18 @@ async def delete_ocr(
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: OCRService = Depends(get_ocr_service),
 ):
-    from sqlalchemy import delete as sql_delete
-    from app.models.medication_schedule import MedicationSchedule
     ocr = await service.ocr_repo.get_by_id(ocr_id)
     if not ocr or ocr.user_id != user_id:
         raise NotFoundError("OCRResult", str(ocr_id))
+    # S3 이미지도 같이 삭제
+    if ocr.image_url and "amazonaws.com" in ocr.image_url:
+        try:
+            from app.services.s3_service import S3Service
+            s3 = S3Service()
+            key = ocr.image_url.split(".amazonaws.com/")[-1]
+            await s3.delete(key)
+        except Exception:
+            pass
     await service.db.delete(ocr)
     await service.db.flush()
     await service.db.commit()

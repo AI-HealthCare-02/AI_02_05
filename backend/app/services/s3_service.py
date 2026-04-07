@@ -70,6 +70,13 @@ class S3Service:
             "expires_in": settings.S3_PRESIGNED_EXPIRY,
         }
 
+    async def delete(self, key: str) -> None:
+        try:
+            async with self._session().client("s3") as s3:
+                await s3.delete_object(Bucket=settings.S3_BUCKET, Key=key)
+        except ClientError:
+            pass
+
     async def _validate(self, file: UploadFile) -> None:
         if file.content_type not in ALLOWED_CONTENT_TYPES:
             raise HTTPException(
