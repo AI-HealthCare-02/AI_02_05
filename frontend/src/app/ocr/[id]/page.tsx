@@ -7,10 +7,10 @@ import { ParsedDrug } from "@/types";
 
 const TIMING: Record<string, string> = {
   after_meal: "식후", before_meal: "식전", bedtime: "취침 전",
-  morning: "아침", evening: "저녁", empty_stomach: "공복",
+  morning: "아침", evening: "저녁", empty_stomach: "공복", custom: "직접 입력",
 };
 
-const EMPTY_DRUG: ParsedDrug = { name: "", dosage: "", frequency: "1일 1회", timing: "after_meal" };
+const EMPTY_DRUG: ParsedDrug = { name: "", dosage: "", frequency: "1일 1회", timing: "after_meal", custom_time: "" };
 
 export default function OCRResultPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -129,6 +129,14 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-violet-400">
                   {Object.entries(TIMING).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
+                {drug.timing === "custom" && (
+                  <input
+                    type="time"
+                    value={drug.custom_time ?? ""}
+                    onChange={(e) => update(i, "custom_time", e.target.value)}
+                    className="w-full mt-2 border border-violet-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                  />
+                )}
               </div>
             </div>
           </div>
