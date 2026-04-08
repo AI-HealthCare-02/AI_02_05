@@ -64,12 +64,13 @@ class AuthService:
                 oauth_id=kakao_id,
                 nickname=nickname,
                 profile_img_url=profile_img_url,
+                kakao_access_token=kakao_token,
             )
             is_new = True
         else:
-            # 프로필 정보 업데이트
             user.nickname = nickname
             user.profile_img_url = profile_img_url
+            user.kakao_access_token = kakao_token
 
         access_token = self._create_token(str(user.id), "access")
         refresh_token = self._create_token(str(user.id), "refresh")
