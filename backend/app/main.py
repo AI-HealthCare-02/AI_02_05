@@ -20,7 +20,8 @@ async def lifespan(app: FastAPI):
     from datetime import datetime
 
     async def send_reminders():
-        now = datetime.now()
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo("Asia/Seoul"))
         t = __import__('datetime').time(now.hour, now.minute)
         async with AsyncSessionLocal() as db:
             async with db.begin():
