@@ -4,9 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, admin
-
-from prometheus_fastapi_instrumentator import Instrumentator
+from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, report
 
 logging.basicConfig(level=logging.INFO)
 
@@ -54,9 +52,7 @@ app.include_router(drugs.router)
 app.include_router(chat.router)
 app.include_router(push.router)
 app.include_router(share.router)
-app.include_router(admin.router)
-
-Instrumentator().instrument(app).expose(app)
+app.include_router(report.router)
 
 
 @app.get("/health")
