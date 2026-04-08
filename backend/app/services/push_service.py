@@ -36,11 +36,6 @@ class PushService:
         except Exception as e:
             logger.error(f"카카오 메시지 오류: {e}")
 
-
-class PushService:
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
     async def save_subscription(self, user_id: uuid.UUID, endpoint: str, p256dh: str, auth: str):
         existing = await self.db.execute(
             select(PushSubscription).where(PushSubscription.endpoint == endpoint)
@@ -101,7 +96,6 @@ class PushService:
             )
         )
         kakao_rows = kakao_result.all()
-        # user_id별로 그룹핑
         user_drugs: dict[str, tuple[str, list[str]]] = {}
         for schedule, user in kakao_rows:
             uid = str(user.id)
