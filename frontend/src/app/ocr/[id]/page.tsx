@@ -88,7 +88,7 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
           <input
             value={diseaseName}
             onChange={(e) => setDiseaseName(e.target.value)}
-            placeholder="예: 고혁압, 당뇨, 고지혁증..."
+            placeholder="예: 고혈압, 당뇨, 고지혈증..."
             className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
           />
           <p className="text-xs text-gray-400 mt-1.5">입력하면 복약 스케줄에서 질환명으로 분류되어 보여요</p>
