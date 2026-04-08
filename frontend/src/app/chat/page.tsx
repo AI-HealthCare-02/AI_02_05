@@ -74,7 +74,8 @@ export default function ChatPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col bg-gray-50">
+    // ✅ 전체 배경 다크모드 추가 (dark:bg-gray-900)
+    <main className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* 헤더 */}
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-5 text-white">
         <div className="flex justify-between items-start">
@@ -95,11 +96,12 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="pt-4">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              {/* ✅ 아이콘 배경 다크모드 (dark:bg-violet-900/30) */}
+              <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-full flex items-center justify-center mx-auto mb-3 transition-colors">
                 <span className="text-3xl">🤖</span>
               </div>
-              <p className="text-gray-700 font-semibold">무엇이 궁금하세요?</p>
-              <p className="text-gray-400 text-xs mt-1">현재 복약 중인 약물을 기반으로 답변해드려요</p>
+              <p className="text-gray-700 dark:text-white font-semibold">무엇이 궁금하세요?</p>
+              <p className="text-gray-400 dark:text-gray-400 text-xs mt-1">현재 복약 중인 약물을 기반으로 답변해드려요</p>
             </div>
             <div className="space-y-2">
               {[
@@ -108,9 +110,10 @@ export default function ChatPage() {
                 { icon: "🍺", text: "약 먹고 술 마셔도 돼요?" },
               ].map(({ icon, text }) => (
                 <button key={text} onClick={() => setInput(text)}
-                  className="flex items-center gap-3 w-full text-left bg-white border border-gray-100 rounded-2xl px-4 py-3.5 hover:border-violet-300 hover:shadow-sm transition-all">
+                  // ✅ 추천 질문 박스 다크모드 (dark:bg-gray-800, dark:border-gray-700)
+                  className="flex items-center gap-3 w-full text-left bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-4 py-3.5 hover:border-violet-300 dark:hover:border-violet-500 hover:shadow-sm transition-all">
                   <span className="text-lg">{icon}</span>
-                  <span className="text-sm text-gray-700 font-medium">{text}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">{text}</span>
                 </button>
               ))}
             </div>
@@ -120,18 +123,20 @@ export default function ChatPage() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} items-end gap-2`}>
             {msg.role === "assistant" && (
-              <div className="w-7 h-7 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0 mb-0.5">
+              // ✅ 챗봇 프로필 아이콘 배경 다크모드
+              <div className="w-7 h-7 bg-violet-100 dark:bg-violet-900/40 rounded-full flex items-center justify-center flex-shrink-0 mb-0.5">
                 <span className="text-sm">🤖</span>
               </div>
             )}
-            <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed
+            <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed transition-colors
               ${msg.role === "user"
-                ? "bg-violet-600 text-white rounded-br-sm"
-                : "bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100"}`}>
+                ? "bg-violet-600 text-white rounded-br-sm" // 사용자의 말풍선 (변경 없음)
+                // ✅ 챗봇의 말풍선 다크모드 (dark:bg-gray-800, dark:text-gray-100)
+                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-sm rounded-bl-sm border border-gray-100 dark:border-gray-700"}`}>
               {msg.content || (
                 <span className="flex gap-1 items-center h-4">
                   {[0, 0.15, 0.3].map((d) => (
-                    <span key={d} className="w-1.5 h-1.5 bg-violet-300 rounded-full animate-bounce"
+                    <span key={d} className="w-1.5 h-1.5 bg-violet-300 dark:bg-violet-500 rounded-full animate-bounce"
                       style={{ animationDelay: `${d}s` }} />
                   ))}
                 </span>
@@ -143,15 +148,17 @@ export default function ChatPage() {
       </div>
 
       {/* 입력창 */}
-      <div className="bg-white border-t border-gray-100 px-4 py-3 sticky bottom-0 shadow-lg">
+      {/* ✅ 하단 입력창 배경 다크모드 (dark:bg-gray-900) */}
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-4 py-3 sticky bottom-0 shadow-lg transition-colors">
         <div className="flex gap-2 max-w-md mx-auto">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && send()}
             placeholder="궁금한 점을 입력하세요..."
-            className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-800
-              focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-gray-50 placeholder-gray-400 transition-all"
+            // ✅ 입력 필드(input) 다크모드 (dark:bg-gray-800, dark:text-white)
+            className="flex-1 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 text-sm text-gray-800 dark:text-white
+              focus:outline-none focus:border-violet-400 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/30 bg-gray-50 dark:bg-gray-800 placeholder-gray-400 dark:placeholder-gray-500 transition-all"
           />
           <button onClick={send} disabled={loading || !input.trim()}
             className="w-10 h-10 bg-violet-600 text-white rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-violet-700 transition-colors flex-shrink-0 shadow-sm">
@@ -160,7 +167,7 @@ export default function ChatPage() {
             </svg>
           </button>
         </div>
-        <p className="text-xs text-gray-300 text-center mt-2">AI 답변은 참고용이며 의료 행위를 대체하지 않습니다</p>
+        <p className="text-xs text-gray-300 dark:text-gray-500 text-center mt-2">AI 답변은 참고용이며 의료 행위를 대체하지 않습니다</p>
       </div>
     </main>
   );

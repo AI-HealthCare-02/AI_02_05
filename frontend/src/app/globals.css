@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+input::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+
+@import "tailwindcss";
+
+/* 1. Tailwind에게 우리가 새로 만든 색상 이름을 알려줍니다 */
+@theme {
+  --color-success-bg: var(--success-bg);
+  --color-success-text: var(--success-text);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-text: var(--danger-text);
+}
+
+/* 2. 일반 모드(Standard)일 때의 색상: 초록색과 빨간색 */
+:root {
+  --success-bg: #34d399;   /* emerald-400 (완료 배경) */
+  --success-text: #059669; /* emerald-600 (완료 글씨) */
+  --danger-bg: #f87171;    /* red-400 (위험/삭제 배경) */
+  --danger-text: #ef4444;  /* red-500 (위험/삭제 글씨) */
+}
+
+/* 3. 색약 모드(Color-blind)일 때의 색상: 파란색과 주황색 */
+.color-blind {
+  --success-bg: #60a5fa;   /* blue-400 (파란색) */
+  --success-text: #2563eb; /* blue-600 */
+  --danger-bg: #fb923c;    /* orange-400 (주황색) */
+  --danger-text: #ea580c;  /* orange-600 */
+}
+
+/* --- 여기서부터는 기존에 작성하신 코드입니다 --- */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 input::placeholder {
   color: #6b7280 !important;
   opacity: 1 !important;

@@ -63,22 +63,27 @@ export default function TermsPage() {
 
   const items = tab === "terms" ? TERMS : PRIVACY;
 
-  return (
-    <main className="min-h-screen bg-gray-50">
+return (
+    // ✅ 바탕 화면 다크 모드
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-6 text-white">
-        <button onClick={() => router.back()} className="text-violet-200 text-sm mb-3">‹ 뒤로</button>
+        <button onClick={() => router.back()} className="text-violet-200 text-sm mb-3 hover:text-white transition-colors">‹ 뒤로</button>
         <h1 className="text-xl font-bold">약관 및 정책</h1>
       </div>
 
       {/* 탭 */}
-      <div className="flex bg-white border-b border-gray-100 sticky top-0 z-10">
+      {/* ✅ 탭 메뉴 배경 및 테두리 다크 모드 */}
+      <div className="flex bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 sticky top-0 z-10 transition-colors">
         {[
           { key: "terms", label: "이용약관" },
           { key: "privacy", label: "개인정보처리방침" },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key as "terms" | "privacy")}
+            // ✅ 선택된 탭 / 선택되지 않은 탭 다크 모드 글자색 적용
             className={`flex-1 py-3.5 text-sm font-semibold transition-colors border-b-2 ${
-              tab === key ? "border-violet-600 text-violet-600" : "border-transparent text-gray-400"
+              tab === key 
+                ? "border-violet-600 text-violet-600 dark:border-violet-400 dark:text-violet-400" 
+                : "border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
             }`}>
             {label}
           </button>
@@ -86,16 +91,19 @@ export default function TermsPage() {
       </div>
 
       <div className="max-w-md mx-auto px-4 py-4 space-y-3 pb-10">
-        <p className="text-xs text-gray-400">시행일: 2025년 7월 1일</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 transition-colors">시행일: 2025년 7월 1일</p>
         {items.map((item, i) => (
-          <div key={i} className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-sm font-bold text-gray-800 mb-2">{item.title}</p>
-            <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{item.content}</p>
+          // ✅ 개별 약관 박스 및 글자 다크 모드
+          <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 transition-colors">
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">{item.title}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-line">{item.content}</p>
           </div>
         ))}
-        <div className="bg-violet-50 rounded-2xl p-4 text-xs text-violet-600 text-center">
+        
+        {/* ✅ 문의사항 박스 다크 모드 */}
+        <div className="bg-violet-50 dark:bg-violet-900/20 rounded-2xl p-4 text-xs text-violet-600 dark:text-violet-400 text-center transition-colors">
           <p className="font-semibold">문의사항</p>
-          <p className="mt-1 text-violet-400">서비스 이용 관련 문의는 AI 상담을 이용해주세요</p>
+          <p className="mt-1 text-violet-400 dark:text-violet-500">서비스 이용 관련 문의는 AI 상담을 이용해주세요</p>
         </div>
       </div>
     </main>
