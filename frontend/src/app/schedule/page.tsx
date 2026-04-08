@@ -24,6 +24,35 @@ const TIME_LABELS: Record<string, string> = {
 
 function getTimeLabel(time: string) { return TIME_LABELS[time.slice(0, 5)] ?? ""; }
 
+const PILL_COLORS = [
+  ["#e8a87c", "#f2c9a8"], // 주황 캡슐
+  ["#7c9ee8", "#a8bef2"], // 파랑 캡슐
+  ["#e87c9e", "#f2a8be"], // 핑크 캡슐
+  ["#7ce8b4", "#a8f2d0"], // 민트 캡슐
+  ["#c87ce8", "#dea8f2"], // 보라 캡슐
+  ["#e8d87c", "#f2eaa8"], // 노랑 캡슐
+  ["#7cd4e8", "#a8e8f2"], // 하늘 캡슐
+  ["#e87c7c", "#f2a8a8"], // 빨강 캡슐
+];
+
+function getPillColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  return PILL_COLORS[hash % PILL_COLORS.length];
+}
+
+function PillIcon({ name, checked }: { name: string; checked: boolean }) {
+  const [c1, c2] = getPillColor(name);
+  return (
+    <svg width="32" height="16" viewBox="0 0 32 16" className={`flex-shrink-0 transition-opacity ${checked ? "opacity-30" : "opacity-90"}`}>
+      <rect x="0" y="1" width="32" height="14" rx="7" fill={c2} />
+      <rect x="0" y="1" width="16" height="14" rx="7" fill={c1} />
+      <line x1="16" y1="1" x2="16" y2="15" stroke="white" strokeWidth="1" opacity="0.6" />
+      <rect x="0" y="1" width="32" height="14" rx="7" fill="none" stroke="white" strokeWidth="0.5" opacity="0.4" />
+    </svg>
+  );
+}
+
 function getDayProgress(item: ScheduleItem, targetDate: string) {
   const start = new Date(item.start_date);
   const end = new Date(item.end_date);
@@ -435,6 +464,7 @@ export default function SchedulePage() {
                                     ${item.checked ? "bg-violet-600 border-violet-600 text-white" : "border-gray-300 bg-white hover:border-violet-400"}`}>
                                   {item.checked && <span className="text-[10px] font-bold">✓</span>}
                                 </button>
+                                <PillIcon name={item.drug_name} checked={item.checked} />
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-300" : "text-gray-700"}`}>
                                     {item.drug_name}
