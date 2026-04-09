@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
@@ -58,6 +59,16 @@ app.include_router(share.router)
 app.include_router(admin.router)
 
 Instrumentator().instrument(app).expose(app)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import logging
+    logging.getLogger(__name__).error(f"Unhandled error [{request.method} {request.url.path}]: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"code": "INTERNAL_ERROR", "message": "서버 오류가 발생했어요. 잠시 후 다시 시도해주세요."},
+    )
 
 
 @app.get("/health")
