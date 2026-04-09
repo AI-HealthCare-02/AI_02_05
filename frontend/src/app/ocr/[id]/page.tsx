@@ -64,12 +64,7 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-6 text-white">
         <button onClick={() => router.back()} className="text-violet-200 text-sm mb-3">‹ 뒤로</button>
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">{manualMode ? "약물 직접 입력" : "OCR 결과 확인"}</h1>
-          {data?.confidence && !manualMode && (
-            <span className="text-xs bg-white/20 px-2.5 py-1 rounded-full">
-              인식률 {Math.round(data.confidence * 100)}%
-            </span>
-          )}
+          <h1 className="text-xl font-bold">{manualMode ? "약물 직접 입력" : "처방전 확인"}</h1>
         </div>
         <p className="text-violet-200 text-xs mt-1">
           {manualMode ? "처방받은 약물 정보를 직접 입력해주세요" : "내용을 확인하고 필요하면 수정해주세요"}
@@ -78,8 +73,7 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
 
       <div className="max-w-md mx-auto px-4 py-4 space-y-3 pb-32">
         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3.5 text-xs text-amber-700">
-          <p className="font-bold mb-1">⚠️ 반드시 확인하세요</p>
-          <p className="leading-relaxed">AI 인식 결과가 실제 처방전과 다를 수 있어요. 처방전 원본과 대조 후 수정해주세요.</p>
+          <p className="leading-relaxed">⚠️ AI 인식 결과가 실제 처방전과 다를 수 있어요. 반드시 원본과 대조 후 수정해주세요.</p>
         </div>
 
         {/* 질환명 입력 */}
@@ -98,8 +92,10 @@ export default function OCRResultPage({ params }: { params: Promise<{ id: string
           <div key={i} className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 bg-violet-50">
               <span className="text-xs font-bold text-violet-600">약물 {i + 1}</span>
-              <button onClick={() => setDrugs((p) => p.filter((_, idx) => idx !== i))}
-                className="text-xs text-red-400 hover:text-red-500">삭제</button>
+              {drugs.length > 1 && (
+                <button onClick={() => setDrugs((p) => p.filter((_, idx) => idx !== i))}
+                  className="text-xs text-red-400 hover:text-red-500">삭제</button>
+              )}
             </div>
             <div className="p-4 space-y-3">
               <div>
