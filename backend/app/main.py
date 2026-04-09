@@ -45,7 +45,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://3.34.192.109",
-        "https://pill-mate-eight.vercel.app",
+        "https://pill-mate-six.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
