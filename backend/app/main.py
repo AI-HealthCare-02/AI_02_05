@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, admin
+from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -37,9 +38,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="PillMate API", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://3.34.192.109"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
