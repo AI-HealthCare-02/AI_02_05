@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: `${process.env.NEXT_PUBLIC_S3_BUCKET ?? "clinicalcare-prescriptions"}.s3.ap-northeast-2.amazonaws.com` },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
