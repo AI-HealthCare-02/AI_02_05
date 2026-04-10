@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: process.env.STANDALONE === "true" ? "standalone" : undefined,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "k.kakaocdn.net" },
