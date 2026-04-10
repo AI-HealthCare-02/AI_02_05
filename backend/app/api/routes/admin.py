@@ -1,8 +1,8 @@
 import uuid
-from datetime import date, timedelta
-from fastapi import APIRouter, Depends
+from datetime import date, timedelta, datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func, update
 from app.core.database import get_db
 from app.models.user import User
 from app.models.ocr_result import OCRResult
@@ -114,3 +114,44 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         "active_schedules": active_schedules,
         "daily_checks": daily_data,
     }
+
+
+@router.get("/users")
+async def get_users(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(User).order_by(User.created_at.desc())
+    )
+    users = result.scalars().all()
+    return [
+        {
+            "id": str(u.id),
+            "nickname": u.nickname,
+            "profile_img_url": u.profile_img_url,
+            "is_active": u.is_active,
+            "created_at": u.created_at.isoformat(),
+        }
+        for u in users
+    ]
+
+
+@router.patch("/users/{user_id}/block")
+async def block_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "유저를 찾을 수 없어요."})
+    user.is_active = not user.is_active
+    await db.commit()
+    return {"id": str(user.id), "is_active": user.is_active}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "유저를 찾을 수 없어요."})
+    user.deleted_at = datetime.now(timezone.utc)
+    user.is_active = False
+    await db.commit()
+    return {"detail": "삭제되었어요."}
