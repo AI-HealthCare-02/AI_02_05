@@ -10,6 +10,23 @@ from app.repositories.user_repository import UserRepository
 logger = logging.getLogger(__name__)
 
 
+def _encrypt_token(token: str) -> str:
+    if not settings.TOKEN_ENCRYPT_KEY:
+        return token
+    from cryptography.fernet import Fernet
+    return Fernet(settings.TOKEN_ENCRYPT_KEY.encode()).encrypt(token.encode()).decode()
+
+
+def _decrypt_token(token: str) -> str:
+    if not settings.TOKEN_ENCRYPT_KEY:
+        return token
+    from cryptography.fernet import Fernet
+    try:
+        return Fernet(settings.TOKEN_ENCRYPT_KEY.encode()).decrypt(token.encode()).decode()
+    except Exception:
+        return token
+
+
 class AuthService:
     def __init__(self, db: AsyncSession):
         self.user_repo = UserRepository(db)
@@ -64,13 +81,13 @@ class AuthService:
                 oauth_id=kakao_id,
                 nickname=nickname,
                 profile_img_url=profile_img_url,
-                kakao_access_token=kakao_token,
+                kakao_access_token=_encrypt_token(kakao_token),
             )
             is_new = True
         else:
             user.nickname = nickname
             user.profile_img_url = profile_img_url
-            user.kakao_access_token = kakao_token
+            user.kakao_access_token = _encrypt_token(kakao_token)
 
         access_token = self._create_token(str(user.id), "access")
         refresh_token = self._create_token(str(user.id), "refresh")

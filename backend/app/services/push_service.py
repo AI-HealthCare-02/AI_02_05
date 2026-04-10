@@ -104,7 +104,8 @@ class PushService:
             user_drugs[uid][1].append(schedule.drug_name)
         time_str = target_time.strftime("%H:%M")
         for token, drug_names in user_drugs.values():
-            await self.send_kakao_message(token, drug_names, time_str)
+            from app.services.auth_service import _decrypt_token
+            await self.send_kakao_message(_decrypt_token(token), drug_names, time_str)
 
     async def _send(self, sub: PushSubscription, title: str, body: str):
         try:
