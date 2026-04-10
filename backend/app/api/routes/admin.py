@@ -151,7 +151,6 @@ async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "유저를 찾을 수 없어요."})
-    user.deleted_at = datetime.now(timezone.utc)
-    user.is_active = False
+    await db.delete(user)
     await db.commit()
     return {"detail": "삭제되었어요."}
