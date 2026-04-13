@@ -1,12 +1,13 @@
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, admin
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
+
+from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, admin, notifications
 
 logging.basicConfig(level=logging.INFO)
 
@@ -22,7 +23,7 @@ async def lifespan(app: FastAPI):
     async def send_reminders():
         from zoneinfo import ZoneInfo
         now = datetime.now(ZoneInfo("Asia/Seoul"))
-        t = __import__('datetime').time(now.hour, now.minute)
+        t = __import__("datetime").time(now.hour, now.minute)
         async with AsyncSessionLocal() as db:
             async with db.begin():
                 await PushService(db).send_medication_reminders(t)
@@ -56,6 +57,7 @@ app.include_router(chat.router)
 app.include_router(push.router)
 app.include_router(share.router)
 app.include_router(admin.router)
+app.include_router(notifications.router)
 
 Instrumentator().instrument(app).expose(app)
 
