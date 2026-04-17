@@ -289,7 +289,6 @@ export default function SchedulePage() {
             </div>
             <h1 className="text-2xl font-bold">{isToday ? "오늘의 복약" : "복약 기록"}</h1>
             {dayProgress && (
-              <p className="text-violet-200 text-xs mt-0.5">{dayProgress.currentDay}일차 / {dayProgress.totalDays}일</p>
             )}
           </div>
           {total > 0 && isToday && (
@@ -410,7 +409,6 @@ export default function SchedulePage() {
                     {formatDate(prescribed_date)} 처방
                     {diseaseName && <span className="ml-1 text-violet-400">· {diseaseName}</span>}
                   </span>
-                  <span className="text-xs text-gray-400">{currentDay}일차 / {totalDays}일</span>
                   {allDone && <span className="ml-auto text-xs text-violet-500 font-medium">✓ 모두 완료</span>}
                 </div>
 
