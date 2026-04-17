@@ -82,45 +82,6 @@ function groupByPrescription(schedules: ScheduleItem[]) {
   return Array.from(map.values()).sort((a, b) => b.prescribed_date.localeCompare(a.prescribed_date));
 }
 
-function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClose: () => void }) {
-  const done = schedules.filter((s) => s.checked);
-  const pending = schedules.filter((s) => !s.checked);
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-6 pb-10" onClick={(e) => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-        <h2 className="text-base font-bold text-gray-900 mb-4">오늘 복약 현황</h2>
-        {done.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-violet-600 mb-2">✅ 복약 완료 ({done.length})</p>
-            <div className="space-y-1.5">
-              {done.map((s) => (
-                <div key={s.id} className="flex justify-between items-center bg-violet-50 rounded-xl px-3 py-2.5">
-                  <span className="text-sm text-gray-700 font-medium">{s.drug_name}</span>
-                  <span className="text-xs text-violet-500 font-medium">{s.scheduled_time.slice(0, 5)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {pending.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-amber-500 mb-2">⏳ 미복약 ({pending.length})</p>
-            <div className="space-y-1.5">
-              {pending.map((s) => (
-                <div key={s.id} className="flex justify-between items-center bg-amber-50 rounded-xl px-3 py-2.5">
-                  <span className="text-sm text-gray-700 font-medium">{s.drug_name}</span>
-                  <span className="text-xs text-amber-500 font-medium">{s.scheduled_time.slice(0, 5)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d: string) => void; onClose: () => void }) {
   const [viewYear, setViewYear] = useState(new Date(date).getFullYear());
   const [viewMonth, setViewMonth] = useState(new Date(date).getMonth());
@@ -206,7 +167,6 @@ function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d:
 
 export default function SchedulePage() {
   const [date, setDate] = useState(todayStr);
-  const [showDetail, setShowDetail] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [interactions, setInteractions] = useState<{ severity: string; description: string }[]>([]);
   const { data: schedules = [], isLoading } = useSchedule(date);
@@ -298,7 +258,7 @@ export default function SchedulePage() {
         
         {/* 진행률 카드 */}
         <button className={`w-full backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors ${allDone ? "bg-white/25" : "bg-white/15"}`}
-          onClick={() => total > 0 && setShowDetail(true)}>
+          >
           {allDone && (
             <p className="text-center text-sm font-bold mb-2">🎉 오늘 복약 완료! 잘 하셨어요!</p>
           )}
@@ -312,7 +272,6 @@ export default function SchedulePage() {
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-xs text-violet-200">{checked} / {total} 완료</p>
-            {total > 0 && <p className="text-xs text-violet-300">탭해서 상세 보기 →</p>}
           </div>
         </button>
       </div>
@@ -508,7 +467,6 @@ export default function SchedulePage() {
         </p>
       </div>
 
-      {showDetail && <DetailModal schedules={schedules} onClose={() => setShowDetail(false)} />}
       {showCalendar && <MiniCalendar date={date} onSelect={setDate} onClose={() => setShowCalendar(false)} />}
     </main>
   );
