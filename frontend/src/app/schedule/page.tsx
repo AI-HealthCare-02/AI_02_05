@@ -294,7 +294,8 @@ export default function SchedulePage() {
             </button>
           )}
         </div>
-
+        </div>
+        
         {/* 진행률 카드 */}
         <button className={`w-full backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors ${allDone ? "bg-white/25" : "bg-white/15"}`}
           onClick={() => total > 0 && setShowDetail(true)}>
