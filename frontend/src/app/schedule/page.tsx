@@ -288,9 +288,6 @@ export default function SchedulePage() {
               )}
             </div>
             <h1 className="text-2xl font-bold">{isToday ? "오늘의 복약" : "복약 기록"}</h1>
-            {dayProgress && (
-            )}
-          </div>
           {total > 0 && isToday && (
             <button onClick={handleDeleteAll} className="text-xs bg-white/15 px-3 py-1.5 rounded-full hover:bg-white/25 transition-colors">
               전체 삭제
