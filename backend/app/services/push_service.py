@@ -120,3 +120,67 @@ class PushService:
                 await self.db.execute(delete(PushSubscription).where(PushSubscription.endpoint == sub.endpoint))
             else:
                 logger.error(f"Push failed: {e}")
+
+    async def send_evening_summary(self):
+        """저녁 8시 복약 현황 요약 알림"""
+        today = date.today()
+
+        # 카카오 요약 알림
+        kakao_result = await self.db.execute(
+            select(User)
+            .where(User.kakao_access_token.isnot(None), User.is_active.is_(True))
+        )
+        users = kakao_result.scalars().all()
+
+        for user in users:
+            schedules = await self.db.execute(
+                select(MedicationSchedule)
+                .where(
+                    MedicationSchedule.user_id == user.id,
+                    MedicationSchedule.active.is_(True),
+                    MedicationSchedule.start_date <= today,
+                    MedicationSchedule.end_date >= today,
+                )
+            )
+            all_schedules = schedules.scalars().all()
+            if not all_schedules:
+                continue
+
+            from app.models.medication_schedule import ScheduleCheck
+            checks = await self.db.execute(
+                select(ScheduleCheck).where(
+                    ScheduleCheck.schedule_id.in_([s.id for s in all_schedules]),
+                    ScheduleCheck.check_date == today,
+                    ScheduleCheck.checked_at.isnot(None),
+                )
+            )
+            checked_ids = {c.schedule_id for c in checks.scalars().all()}
+            total = len(all_schedules)
+            done = len(checked_ids)
+            undone = total - done
+
+            if undone == 0:
+                msg = f"🎉 오늘 복약 완료!\n\n✅ {done}개 모두 복용했어요.\n건강한 하루 보내셨나요?"
+            else:
+                undone_names = [s.drug_name for s in all_schedules if s.id not in checked_ids][:3]
+                names = ", ".join(undone_names)
+                msg = f"💊 오늘 복약 현황\n\n✅ 완료: {done}개\n❌ 미복약: {undone}개\n\n아직 복용 안 한 약: {names}\n\nPillMate에서 확인해주세요."
+
+            from app.services.auth_service import _decrypt_token
+            try:
+                token = _decrypt_token(user.kakao_access_token)
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(
+                        "https://kapi.kakao.com/v2/api/talk/memo/default/send",
+                        headers={"Authorization": f"Bearer {token}"},
+                        data={"template_object": json.dumps({
+                            "object_type": "text",
+                            "text": msg,
+                            "link": {"web_url": "https://pill-mate-six.vercel.app/schedule",
+                                     "mobile_web_url": "https://pill-mate-six.vercel.app/schedule"},
+                        })},
+                    )
+                if resp.status_code != 200:
+                    logger.warning(f"저녁 요약 알림 실패 ({resp.status_code}): {resp.text}")
+            except Exception as e:
+                logger.error(f"저녁 요약 알림 오류: {e}")
