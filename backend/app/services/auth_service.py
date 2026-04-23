@@ -54,7 +54,9 @@ class AuthService:
         if token_resp.status_code != 200:
             raise HTTPException(status_code=400, detail=f"카카오 토큰 발급 실패: {token_resp.text}")
 
-        kakao_token = token_resp.json()["access_token"]
+        token_json = token_resp.json()
+        kakao_token = token_json["access_token"]
+        kakao_refresh_token = token_json.get("refresh_token", "")
 
         async with httpx.AsyncClient() as client:
             user_resp = await client.get(
@@ -83,11 +85,15 @@ class AuthService:
                 profile_img_url=profile_img_url,
                 kakao_access_token=_encrypt_token(kakao_token),
             )
+            if kakao_refresh_token:
+                user.kakao_refresh_token = _encrypt_token(kakao_refresh_token)
             is_new = True
         else:
             user.nickname = nickname
             user.profile_img_url = profile_img_url
             user.kakao_access_token = _encrypt_token(kakao_token)
+            if kakao_refresh_token:
+                user.kakao_refresh_token = _encrypt_token(kakao_refresh_token)
 
         access_token = self._create_token(str(user.id), "access")
         refresh_token = self._create_token(str(user.id), "refresh")
