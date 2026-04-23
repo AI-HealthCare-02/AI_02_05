@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, admin
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware
-
+from app.api.routes import feedback
 from prometheus_fastapi_instrumentator import Instrumentator
 
 logging.basicConfig(level=logging.INFO)
@@ -29,8 +29,14 @@ async def lifespan(app: FastAPI):
             async with db.begin():
                 await PushService(db).send_medication_reminders(t)
 
+    async def send_evening_summary():
+        async with AsyncSessionLocal() as session:
+            svc = PushService(session)
+            await svc.send_evening_summary()
+            await session.commit()
+
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_reminders, CronTrigger(minute="*"))
+    scheduler.add_job(send_evening_summary, "cron", hour=11, minute=0)  # UTC 11시 = KST 20시    scheduler.add_job(send_reminders, CronTrigger(minute="*"))
     scheduler.start()
     yield
     scheduler.shutdown()
@@ -42,7 +48,11 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://3.34.192.109"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://3.34.192.109",
+        "https://pill-mate-six.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +70,7 @@ app.include_router(chat.router)
 app.include_router(push.router)
 app.include_router(share.router)
 app.include_router(admin.router)
+app.include_router(feedback.router)
 
 Instrumentator().instrument(app).expose(app)
 
