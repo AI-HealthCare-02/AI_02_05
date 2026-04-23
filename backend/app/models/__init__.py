@@ -5,3 +5,4 @@ from app.models.drug import Drug, DrugInteraction
 from app.models.medication_schedule import MedicationSchedule, ScheduleCheck
 from app.models.push_subscription import PushSubscription
 from app.models.share_token import ShareToken
+from app.models.medication_report import MedicationReport, DoctorShareToken
