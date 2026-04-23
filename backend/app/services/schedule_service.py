@@ -33,13 +33,20 @@ class ScheduleCreateInput:
     timing: str
     start_date: date
     duration_days: int = 30
+    custom_time: str | None = None
 
 
 class ScheduleService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    def _resolve_times(self, timing: str, frequency: str) -> list[time]:
+    def _resolve_times(self, timing: str, frequency: str, custom_time: str | None = None) -> list[time]:
+        if timing == "custom" and custom_time:
+            try:
+                h, m = map(int, custom_time.split(":"))
+                return [time(h, m)]
+            except Exception:
+                pass
         count = FREQ_TO_COUNT.get(frequency, 1)
         candidates = TIMING_DEFAULTS.get(timing, TIMING_DEFAULTS["after_meal"])
         if count == 1:
@@ -53,7 +60,7 @@ class ScheduleService:
     async def create_from_ocr(self, inputs: list[ScheduleCreateInput]) -> list[MedicationSchedule]:
         schedules: list[MedicationSchedule] = []
         for inp in inputs:
-            times = self._resolve_times(inp.timing, inp.frequency)
+            times = self._resolve_times(inp.timing, inp.frequency, inp.custom_time)
             end_date = inp.start_date + timedelta(days=inp.duration_days)
             for t in times:
                 s = MedicationSchedule(

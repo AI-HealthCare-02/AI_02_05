@@ -21,11 +21,37 @@ const TIME_LABELS: Record<string, string> = {
   "18:00": "저녁", "19:00": "저녁",
   "21:00": "취침 전", "21:30": "취침 전",
 };
-const TIME_ICONS: Record<string, string> = {
-  "아침": "🌅", "점심": "☀️", "저녁": "🌆", "취침 전": "🌙",
-};
 
 function getTimeLabel(time: string) { return TIME_LABELS[time.slice(0, 5)] ?? ""; }
+
+const PILL_COLORS = [
+  ["#e8a87c", "#f2c9a8"], // 주황 캡슐
+  ["#7c9ee8", "#a8bef2"], // 파랑 캡슐
+  ["#e87c9e", "#f2a8be"], // 핑크 캡슐
+  ["#7ce8b4", "#a8f2d0"], // 민트 캡슐
+  ["#c87ce8", "#dea8f2"], // 보라 캡슐
+  ["#e8d87c", "#f2eaa8"], // 노랑 캡슐
+  ["#7cd4e8", "#a8e8f2"], // 하늘 캡슐
+  ["#e87c7c", "#f2a8a8"], // 빨강 캡슐
+];
+
+function getPillColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  return PILL_COLORS[hash % PILL_COLORS.length];
+}
+
+function PillIcon({ name, checked }: { name: string; checked: boolean }) {
+  const [c1, c2] = getPillColor(name);
+  return (
+    <svg width="32" height="16" viewBox="0 0 32 16" className={`flex-shrink-0 transition-opacity ${checked ? "opacity-30" : "opacity-90"}`}>
+      <rect x="0" y="1" width="32" height="14" rx="7" fill={c2} />
+      <rect x="0" y="1" width="16" height="14" rx="7" fill={c1} />
+      <line x1="16" y1="1" x2="16" y2="15" stroke="white" strokeWidth="1" opacity="0.6" />
+      <rect x="0" y="1" width="32" height="14" rx="7" fill="none" stroke="white" strokeWidth="0.5" opacity="0.4" />
+    </svg>
+  );
+}
 
 function getDayProgress(item: ScheduleItem, targetDate: string) {
   const start = new Date(item.start_date);
@@ -54,45 +80,6 @@ function groupByPrescription(schedules: ScheduleItem[]) {
     map.get(key)!.items.push(s);
   }
   return Array.from(map.values()).sort((a, b) => b.prescribed_date.localeCompare(a.prescribed_date));
-}
-
-function DetailModal({ schedules, onClose }: { schedules: ScheduleItem[]; onClose: () => void }) {
-  const done = schedules.filter((s) => s.checked);
-  const pending = schedules.filter((s) => !s.checked);
-  return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-6 pb-10" onClick={(e) => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
-        <h2 className="text-base font-bold text-gray-900 mb-4">오늘 복약 현황</h2>
-        {done.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-violet-600 mb-2">✅ 복약 완료 ({done.length})</p>
-            <div className="space-y-1.5">
-              {done.map((s) => (
-                <div key={s.id} className="flex justify-between items-center bg-violet-50 rounded-xl px-3 py-2.5">
-                  <span className="text-sm text-gray-700 font-medium">{s.drug_name}</span>
-                  <span className="text-xs text-violet-500 font-medium">{s.scheduled_time.slice(0, 5)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {pending.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-amber-500 mb-2">⏳ 미복약 ({pending.length})</p>
-            <div className="space-y-1.5">
-              {pending.map((s) => (
-                <div key={s.id} className="flex justify-between items-center bg-amber-50 rounded-xl px-3 py-2.5">
-                  <span className="text-sm text-gray-700 font-medium">{s.drug_name}</span>
-                  <span className="text-xs text-amber-500 font-medium">{s.scheduled_time.slice(0, 5)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d: string) => void; onClose: () => void }) {
@@ -180,7 +167,6 @@ function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d:
 
 export default function SchedulePage() {
   const [date, setDate] = useState(todayStr);
-  const [showDetail, setShowDetail] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [interactions, setInteractions] = useState<{ severity: string; description: string }[]>([]);
   const { data: schedules = [], isLoading } = useSchedule(date);
@@ -234,7 +220,7 @@ export default function SchedulePage() {
   const progressLabel = isToday ? "오늘 진행률" : `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 진행률`;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-[#f0ede8]">
       {/* 헤더 */}
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-6 text-white">
         <div className="flex justify-between items-start mb-5">
@@ -262,20 +248,17 @@ export default function SchedulePage() {
               )}
             </div>
             <h1 className="text-2xl font-bold">{isToday ? "오늘의 복약" : "복약 기록"}</h1>
-            {dayProgress && (
-              <p className="text-violet-200 text-xs mt-0.5">{dayProgress.currentDay}일차 / {dayProgress.totalDays}일</p>
-            )}
-          </div>
           {total > 0 && isToday && (
             <button onClick={handleDeleteAll} className="text-xs bg-white/15 px-3 py-1.5 rounded-full hover:bg-white/25 transition-colors">
               전체 삭제
             </button>
           )}
         </div>
-
+        </div>
+        
         {/* 진행률 카드 */}
         <button className={`w-full backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors ${allDone ? "bg-white/25" : "bg-white/15"}`}
-          onClick={() => total > 0 && setShowDetail(true)}>
+          >
           {allDone && (
             <p className="text-center text-sm font-bold mb-2">🎉 오늘 복약 완료! 잘 하셨어요!</p>
           )}
@@ -289,7 +272,6 @@ export default function SchedulePage() {
           </div>
           <div className="flex justify-between items-center mt-2">
             <p className="text-xs text-violet-200">{checked} / {total} 완료</p>
-            {total > 0 && <p className="text-xs text-violet-300">탭해서 상세 보기 →</p>}
           </div>
         </button>
       </div>
@@ -384,60 +366,93 @@ export default function SchedulePage() {
                     {formatDate(prescribed_date)} 처방
                     {diseaseName && <span className="ml-1 text-violet-400">· {diseaseName}</span>}
                   </span>
-                  <span className="text-xs text-gray-400">{currentDay}일차 / {totalDays}일</span>
                   {allDone && <span className="ml-auto text-xs text-violet-500 font-medium">✓ 모두 완료</span>}
                 </div>
 
-                {timeGroups.map(([time, timeItems]) => {
+                {timeGroups.map(([time, timeItems], tIdx) => {
                   const timeAllChecked = timeItems.every((s) => s.checked);
                   const timeSomeChecked = timeItems.some((s) => s.checked);
                   const label = getTimeLabel(time);
-                  const icon = TIME_ICONS[label] ?? "💊";
                   const checkedCount = timeItems.filter(s => s.checked).length;
+                  const [hour, min] = time.split(":");
+                  const h = parseInt(hour);
+                  const ampm = h < 12 ? "AM" : "PM";
+                  const displayHour = h > 12 ? h - 12 : h;
                   return (
-                    <div key={time} className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all ${timeAllChecked ? "opacity-60" : ""}`}>
-                      {/* 약봉투 헤더 */}
-                      <div className={`flex items-center justify-between px-4 py-3 ${timeAllChecked ? "bg-violet-50" : "bg-gray-50/80"}`}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{icon}</span>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-bold text-gray-800">{time}</span>
-                              {label && <span className="text-xs text-gray-400">{label}</span>}
-                            </div>
-                            <p className="text-xs text-gray-400">💊 {timeItems.length}종류 약봉투{timeAllChecked ? " · 복용 완료" : timeSomeChecked ? ` · ${checkedCount}/${timeItems.length} 완료` : ""}</p>
-                          </div>
+                    <div key={time} className="relative">
+                      {/* 봉투 연결 점선 (첫 번째 제외) */}
+                      {tIdx > 0 && (
+                        <div className="flex justify-center -mt-1 mb-0 z-10 relative">
+                          <div className="w-[85%] border-t-2 border-dashed border-gray-200" />
                         </div>
-                        <button onClick={() => handleGroupCheck(timeItems)}
-                          className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all
-                            ${timeAllChecked ? "bg-violet-100 text-violet-600"
-                              : timeSomeChecked ? "bg-amber-100 text-amber-600"
-                              : "bg-violet-600 text-white hover:bg-violet-700"}`}>
-                          {timeAllChecked ? "✓ 복용 완료" : "복용 완료"}
-                        </button>
-                      </div>
+                      )}
+                      {/* 약봉투 카드 */}
+                      <div className={`relative transition-all duration-300 ${timeAllChecked ? "opacity-55" : ""}`}>
+                        {/* 상단 지그재그 tear line */}
+                        <div className="relative overflow-hidden h-4">
+                          <svg viewBox="0 0 400 16" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                            <path d="M0,16 L0,8 L10,0 L20,8 L30,0 L40,8 L50,0 L60,8 L70,0 L80,8 L90,0 L100,8 L110,0 L120,8 L130,0 L140,8 L150,0 L160,8 L170,0 L180,8 L190,0 L200,8 L210,0 L220,8 L230,0 L240,8 L250,0 L260,8 L270,0 L280,8 L290,0 L300,8 L310,0 L320,8 L330,0 L340,8 L350,0 L360,8 L370,0 L380,8 L390,0 L400,8 L400,16 Z"
+                              fill={timeAllChecked ? "#ede9fe" : "#f8f8f8"} />
+                          </svg>
+                        </div>
 
-                      {/* 약물 목록 (접기/펼치기) */}
-                      <div className="divide-y divide-gray-50">
-                        {timeItems.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-                            <button onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
-                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
-                                ${item.checked ? "bg-violet-600 border-violet-600 text-white" : "border-gray-200 hover:border-violet-400"}`}>
-                              {item.checked && <span className="text-[10px] font-bold">✓</span>}
-                            </button>
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-300" : "text-gray-800"}`}>
-                                {item.drug_name}
-                              </p>
-                              {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
+                        {/* 봉투 본체 */}
+                        <div className={`px-5 pt-3 pb-5 ${timeAllChecked ? "bg-violet-50" : "bg-[#f8f8f8]"} shadow-sm`}>
+                          {/* 시간 + 시간대명 크게 */}
+                          <div className="mb-3">
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-4xl font-black text-gray-800 tracking-tight">
+                                {displayHour}:{min}
+                              </span>
+                              <span className="text-sm font-bold text-gray-400">{ampm}</span>
                             </div>
-                            <button onClick={() => deleteSchedule(item.id)}
-                              className="w-6 h-6 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 text-lg">
-                              ×
-                            </button>
+                            {label && <p className="text-xl font-bold text-gray-700 -mt-1">{label}</p>}
+                            <p className="text-xs text-gray-400 mt-0.5">{dateLabel}</p>
                           </div>
-                        ))}
+
+                          {/* 약물 체크리스트 */}
+                          <div className="space-y-2 mb-3">
+                            {timeItems.map((item) => (
+                              <div key={item.id} className="flex items-center gap-2.5">
+                                <button onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
+                                    ${item.checked ? "bg-violet-600 border-violet-600 text-white" : "border-gray-300 bg-white hover:border-violet-400"}`}>
+                                  {item.checked && <span className="text-[10px] font-bold">✓</span>}
+                                </button>
+                                <PillIcon name={item.drug_name} checked={item.checked} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-300" : "text-gray-700"}`}>
+                                    {item.drug_name}
+                                  </p>
+                                  {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
+                                </div>
+                                <button onClick={() => deleteSchedule(item.id)}
+                                  className="w-5 h-5 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors text-base flex-shrink-0">
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 복용 완료 버튼 */}
+                          <button onClick={() => handleGroupCheck(timeItems)}
+                            className={`flex items-center gap-1.5 text-xs font-semibold transition-all
+                              ${timeAllChecked ? "text-violet-500" : timeSomeChecked ? "text-amber-500" : "text-gray-400 hover:text-violet-500"}`}>
+                            <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[9px]
+                              ${timeAllChecked ? "border-violet-400 bg-violet-100" : "border-gray-300"}`}>
+                              {timeAllChecked ? "✓" : "○"}
+                            </span>
+                            {timeAllChecked ? "복용 완료" : timeSomeChecked ? `${checkedCount}/${timeItems.length} 완료` : "복용 완료로 표시"}
+                          </button>
+                        </div>
+
+                        {/* 하단 지그재그 (봉투 밀봉 부분) */}
+                        <div className="relative overflow-hidden h-3">
+                          <svg viewBox="0 0 400 12" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+                            <path d="M0,0 L0,4 L10,12 L20,4 L30,12 L40,4 L50,12 L60,4 L70,12 L80,4 L90,12 L100,4 L110,12 L120,4 L130,12 L140,4 L150,12 L160,4 L170,12 L180,4 L190,12 L200,4 L210,12 L220,4 L230,12 L240,4 L250,12 L260,4 L270,12 L280,4 L290,12 L300,4 L310,12 L320,4 L330,12 L340,4 L350,12 L360,4 L370,12 L380,4 L390,12 L400,4 L400,0 Z"
+                              fill={timeAllChecked ? "#ede9fe" : "#f8f8f8"} />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   );
@@ -452,7 +467,6 @@ export default function SchedulePage() {
         </p>
       </div>
 
-      {showDetail && <DetailModal schedules={schedules} onClose={() => setShowDetail(false)} />}
       {showCalendar && <MiniCalendar date={date} onSelect={setDate} onClose={() => setShowCalendar(false)} />}
     </main>
   );

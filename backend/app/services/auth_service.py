@@ -10,6 +10,23 @@ from app.repositories.user_repository import UserRepository
 logger = logging.getLogger(__name__)
 
 
+def _encrypt_token(token: str) -> str:
+    if not settings.TOKEN_ENCRYPT_KEY:
+        return token
+    from cryptography.fernet import Fernet
+    return Fernet(settings.TOKEN_ENCRYPT_KEY.encode()).encrypt(token.encode()).decode()
+
+
+def _decrypt_token(token: str) -> str:
+    if not settings.TOKEN_ENCRYPT_KEY:
+        return token
+    from cryptography.fernet import Fernet
+    try:
+        return Fernet(settings.TOKEN_ENCRYPT_KEY.encode()).decrypt(token.encode()).decode()
+    except Exception:
+        return token
+
+
 class AuthService:
     def __init__(self, db: AsyncSession):
         self.user_repo = UserRepository(db)
@@ -37,7 +54,9 @@ class AuthService:
         if token_resp.status_code != 200:
             raise HTTPException(status_code=400, detail=f"카카오 토큰 발급 실패: {token_resp.text}")
 
-        kakao_token = token_resp.json()["access_token"]
+        token_json = token_resp.json()
+        kakao_token = token_json["access_token"]
+        kakao_refresh_token = token_json.get("refresh_token", "")
 
         async with httpx.AsyncClient() as client:
             user_resp = await client.get(
@@ -64,12 +83,17 @@ class AuthService:
                 oauth_id=kakao_id,
                 nickname=nickname,
                 profile_img_url=profile_img_url,
+                kakao_access_token=_encrypt_token(kakao_token),
             )
+            if kakao_refresh_token:
+                user.kakao_refresh_token = _encrypt_token(kakao_refresh_token)
             is_new = True
         else:
-            # 프로필 정보 업데이트
             user.nickname = nickname
             user.profile_img_url = profile_img_url
+            user.kakao_access_token = _encrypt_token(kakao_token)
+            if kakao_refresh_token:
+                user.kakao_refresh_token = _encrypt_token(kakao_refresh_token)
 
         access_token = self._create_token(str(user.id), "access")
         refresh_token = self._create_token(str(user.id), "refresh")
