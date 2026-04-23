@@ -9,6 +9,7 @@ from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share
 from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware
 from app.api.routes import feedback
 from prometheus_fastapi_instrumentator import Instrumentator
+from app.api.routes import voice
 
 logging.basicConfig(level=logging.INFO)
 
@@ -71,6 +72,7 @@ app.include_router(push.router)
 app.include_router(share.router)
 app.include_router(admin.router)
 app.include_router(feedback.router)
+app.include_router(voice.router)
 
 Instrumentator().instrument(app).expose(app)
 
