@@ -14,8 +14,15 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+<<<<<<< Updated upstream
   const bottomRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef("");
+=======
+  const [recording, setRecording] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef("");
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+>>>>>>> Stashed changes
 
   useEffect(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); if (s) setMessages(JSON.parse(s)); } catch {}
@@ -67,6 +74,39 @@ export default function ChatPage() {
     } finally { setLoading(false); }
   };
 
+<<<<<<< Updated upstream
+=======
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("이 브라우저는 음성 인식을 지원하지 않아요. 크롬을 사용해주세요.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ko-KR";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      setInput(text);
+      send(text);
+    };
+    recognition.onerror = () => {
+      setRecording(false);
+      alert("음성 인식에 실패했어요. 다시 시도해주세요.");
+    };
+    recognition.onend = () => setRecording(false);
+    recognition.start();
+    recognitionRef.current = recognition;
+    setRecording(true);
+  };
+
+  const stopRecording = () => {
+    recognitionRef.current?.stop();
+    setRecording(false);
+  };
+
+>>>>>>> Stashed changes
   const clearHistory = () => {
     if (confirm("대화 기록을 모두 삭제할까요?")) {
       setMessages([]);
@@ -160,11 +200,27 @@ export default function ChatPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && send()}
+<<<<<<< Updated upstream
             placeholder="궁금한 점을 입력하세요..."
             className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-800
               focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-gray-50 placeholder-gray-400 transition-all"
           />
           <button onClick={send} disabled={loading || !input.trim()}
+=======
+            placeholder="궁금한 점을 입력하거나 🎤 버튼을 눌러 말씀하세요"
+            className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-800
+              focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-gray-50 placeholder-gray-400 transition-all"
+          />
+          <button
+            onClick={recording ? stopRecording : startRecording}
+            disabled={loading}
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 shadow-sm
+              ${recording ? "bg-red-500 animate-pulse" : "bg-violet-100 hover:bg-violet-200"}
+              disabled:opacity-40`}>
+            <span className="text-lg">{recording ? "🔴" : "🎤"}</span>
+          </button>
+          <button onClick={() => send()} disabled={loading || !input.trim()}
+>>>>>>> Stashed changes
             className="w-10 h-10 bg-violet-600 text-white rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-violet-700 transition-colors flex-shrink-0 shadow-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
