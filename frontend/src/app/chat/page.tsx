@@ -78,6 +78,7 @@ export default function ChatPage() {
     } finally { setLoading(false); }
   };
 
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
