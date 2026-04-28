@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -75,7 +76,6 @@ export default function ChatPage() {
 
   return (
     <main className="min-h-screen flex flex-col bg-gray-50">
-      {/* 헤더 */}
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-5 text-white">
         <div className="flex justify-between items-start">
           <div>
@@ -90,7 +90,6 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* 메시지 영역 */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 max-w-md mx-auto w-full">
         {messages.length === 0 && (
           <div className="pt-4">
@@ -128,7 +127,20 @@ export default function ChatPage() {
               ${msg.role === "user"
                 ? "bg-violet-600 text-white rounded-br-sm"
                 : "bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100"}`}>
-              {msg.content || (
+              {msg.role === "assistant" && msg.content ? (
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                    ul: ({ children }) => <ul className="list-disc pl-4 space-y-0.5">{children}</ul>,
+                    ol: ({ children }) => <ol className="list-decimal pl-4 space-y-0.5">{children}</ol>,
+                    li: ({ children }) => <li className="text-sm">{children}</li>,
+                  }}>
+                  {msg.content}
+                </ReactMarkdown>
+              ) : msg.role === "user" ? (
+                msg.content
+              ) : (
                 <span className="flex gap-1 items-center h-4">
                   {[0, 0.15, 0.3].map((d) => (
                     <span key={d} className="w-1.5 h-1.5 bg-violet-300 rounded-full animate-bounce"
@@ -142,7 +154,6 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* 입력창 */}
       <div className="bg-white border-t border-gray-100 px-4 py-3 sticky bottom-0 shadow-lg">
         <div className="flex gap-2 max-w-md mx-auto">
           <input

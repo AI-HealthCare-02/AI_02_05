@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 # revision identifiers, used by Alembic.
 revision: str = 'a3f8b2c1d4e5'
-down_revision: Union[str, None] = '96d4b276cd50'
+down_revision: Union[str, None] = 'add_kakao_access_token'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

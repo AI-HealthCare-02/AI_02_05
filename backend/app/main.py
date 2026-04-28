@@ -4,7 +4,9 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
-from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, report
+from app.api.routes import upload, ocr, schedule, drugs, auth, chat, push, share, admin, report, feedback, voice
+from app.middleware import RateLimitMiddleware, RequestLoggingMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,8 +26,14 @@ async def lifespan(app: FastAPI):
             async with db.begin():
                 await PushService(db).send_medication_reminders(t)
 
+    async def send_evening_summary():
+        async with AsyncSessionLocal() as session:
+            svc = PushService(session)
+            await svc.send_evening_summary()
+            await session.commit()
+
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(send_reminders, CronTrigger(minute="*"))
+    scheduler.add_job(send_evening_summary, "cron", hour=11, minute=0)  # UTC 11시 = KST 20시    scheduler.add_job(send_reminders, CronTrigger(minute="*"))
     scheduler.start()
     yield
     scheduler.shutdown()
@@ -35,7 +43,11 @@ app = FastAPI(title="PillMate API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://3.34.192.109",
+        "https://pill-mate-six.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +64,22 @@ app.include_router(drugs.router)
 app.include_router(chat.router)
 app.include_router(push.router)
 app.include_router(share.router)
+app.include_router(report.router)
+app.include_router(admin.router)
+app.include_router(feedback.router)
+app.include_router(voice.router)
+
+Instrumentator().instrument(app).expose(app)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import logging
+    logging.getLogger(__name__).error(f"Unhandled error [{request.method} {request.url.path}]: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"code": "INTERNAL_ERROR", "message": "서버 오류가 발생했어요. 잠시 후 다시 시도해주세요."},
+    )
 app.include_router(report.router)
 
 

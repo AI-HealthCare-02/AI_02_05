@@ -5,6 +5,7 @@ export interface ParsedDrug {
   dosage: string;
   frequency: string;
   timing: string;
+  custom_time?: string;
   verified?: boolean;
 }
 

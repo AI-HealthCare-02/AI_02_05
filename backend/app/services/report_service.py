@@ -1,3 +1,18 @@
+"""
+report_service.py 패치 버전 — OpenAI 키가 없거나 호출 실패 시
+rule-based 폴백으로 자연스러운 summary/detail/recommendations 생성.
+
+사용법:
+  backend/app/services/report_service.py 를 이 파일로 덮어쓰기.
+
+원본과의 차이:
+  1. settings.OPENAI_API_KEY 가 비어있으면 OpenAI 클라이언트를 초기화하지 않음
+  2. LLM 호출 실패/키없음 시 _rule_based_summary() 가 통계 데이터 기반으로
+     한글 요약문을 자동 생성 (summary/detail/recommendations 각각)
+  3. 생성된 리포트에 source 필드는 없고, ai_analysis 는 그대로 DB 필드에 저장
+
+원본 로직 (수집/통계/LLM 호출)은 그대로 유지.
+"""
 import uuid
 import json
 from datetime import date, timedelta, datetime, timezone
@@ -43,8 +58,18 @@ REPORT_SYSTEM_PROMPT = """당신은 ClinicalCare+의 복약 패턴 분석 AI입�
 class ReportService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        # OpenAI 키가 있을 때만 클라이언트 생성
+        api_key = getattr(settings, "OPENAI_API_KEY", None)
+        if api_key and api_key.strip() and api_key.startswith("sk-"):
+            try:
+                from openai import AsyncOpenAI
+                self.client = AsyncOpenAI(api_key=api_key)
+            except Exception:
+                self.client = None
+        else:
+            self.client = None
 
+    # ────────────────────────── 데이터 수집 (원본 그대로) ──────────────────────────
     async def _collect_data(
         self, user_id: uuid.UUID, start: date, end: date
     ) -> dict:
@@ -237,8 +262,138 @@ class ReportService:
             "period": f"{start.isoformat()} ~ {end.isoformat()}",
         }
 
+    # ────────────────────── Rule-based 폴백 (신규 추가) ──────────────────────
+    def _rule_based_summary(self, data: dict) -> dict:
+        """OpenAI 없이 통계만으로 summary/detail/recommendations 생성."""
+        rate_pct = data["compliance_rate"] * 100
+        streak = data["streak_days"]
+        stats = data["stats_json"]
+        drug_stats = stats.get("drug_stats", {})
+        time_stats = stats.get("time_stats", {})
+        weekday_stats = stats.get("weekday_stats", {})
+        misses = stats.get("consecutive_misses", [])
+
+        # ─── summary (환자용, 격려하는 톤) ───
+        if rate_pct >= 90:
+            headline = f"이번 기간 복약률이 {rate_pct:.0f}%로 아주 훌륭해요! 👏"
+            tone = "꾸준한 실천이 인상적이에요. 지금 흐름을 유지해 주세요."
+        elif rate_pct >= 75:
+            headline = f"복약률 {rate_pct:.0f}% - 대체로 잘 지키고 계세요."
+            tone = "몇 번의 누락만 보완하면 완벽해질 수 있어요."
+        elif rate_pct >= 50:
+            headline = f"복약률 {rate_pct:.0f}% - 절반은 넘겼지만 개선 여지가 있어요."
+            tone = "어떤 시간대·요일에 자주 놓치는지 아래에서 확인해 보세요."
+        else:
+            headline = f"복약률 {rate_pct:.0f}% - 최근 누락이 잦았네요."
+            tone = "조금만 더 신경 쓰면 금방 회복할 수 있어요. 함께 개선해 봐요."
+
+        streak_line = (
+            f"현재 {streak}일 연속 복약을 이어가고 있어요. 정말 잘하고 계세요!"
+            if streak >= 3 else
+            "연속 복약 기록을 다시 쌓아볼까요? 오늘부터 시작이에요."
+        )
+        summary = f"{headline}\n{tone}\n{streak_line}"
+
+        # ─── detail (의사용, 객관적 톤) ───
+        lines = [
+            f"■ 전체 복약 순응도: {rate_pct:.1f}% ({data['total_checked']}/{data['total_scheduled']}회)",
+            f"■ 연속 복약 일수: {streak}일",
+        ]
+
+        # 약물별
+        if drug_stats:
+            lines.append("\n■ 약물별 복용 현황:")
+            for name, s in sorted(drug_stats.items(), key=lambda x: x[1]["rate"]):
+                disease = s.get("disease")
+                disease_str = f" [{disease}]" if disease else ""
+                lines.append(
+                    f"  · {name}{disease_str}: {s['rate']*100:.0f}% "
+                    f"({s['checked']}/{s['expected']}회)"
+                )
+
+        # 시간대별
+        if time_stats:
+            lines.append("\n■ 시간대별 복용 패턴:")
+            for slot, s in time_stats.items():
+                if s["total"] > 0:
+                    lines.append(f"  · {slot}: {s['rate']*100:.0f}% ({s['checked']}/{s['total']})")
+
+        # 요일별 누락
+        if weekday_stats:
+            weak_days = sorted(
+                [(k, v) for k, v in weekday_stats.items() if v["total"] > 0],
+                key=lambda x: -x[1]["miss_rate"],
+            )[:3]
+            if weak_days and weak_days[0][1]["missed"] > 0:
+                parts = [f"{wd}요일({v['missed']}회)" for wd, v in weak_days if v["missed"] > 0]
+                lines.append(f"\n■ 누락 패턴 (요일별): " + ", ".join(parts) + " 순으로 누락 빈도 높음")
+
+        # 연속 누락
+        if misses:
+            lines.append(f"\n■ 연속 누락 구간: 총 {len(misses)}건 감지")
+            for m in misses[:3]:
+                lines.append(f"  · {m['drug']}: {m['start']} ~ {m['end']} ({m['days']}일)")
+
+        lines.append(
+            "\n■ 특이사항: 본 분석은 기록 기반 통계 결과이며, "
+            "진단이나 처방 변경은 담당 의사의 판단이 필요합니다."
+        )
+        detail = "\n".join(lines)
+
+        # ─── recommendations ───
+        recs_list = []
+
+        # 시간대 취약점 기반
+        weakest_slot = None
+        if time_stats:
+            candidates = [(k, v) for k, v in time_stats.items() if v["total"] > 0]
+            if candidates:
+                weakest_slot = min(candidates, key=lambda x: x[1]["rate"])
+                if weakest_slot[1]["rate"] < 0.8:
+                    recs_list.append(
+                        f"{weakest_slot[0]} 복용이 가장 약한 구간입니다. "
+                        f"해당 시간에 알람을 추가로 설정하거나 일상 루틴(식사·양치 등)과 연결해 보세요."
+                    )
+
+        # 연속 누락 있으면
+        if misses:
+            recs_list.append(
+                "2일 이상 연속 누락이 감지되었습니다. "
+                "누락이 길어질 경우 약효가 떨어질 수 있으니, 보호자 알림 기능이나 "
+                "주간 점검 습관을 함께 사용해 보시길 권장합니다."
+            )
+
+        # 약물별 편차
+        if drug_stats:
+            rates = [s["rate"] for s in drug_stats.values() if s["expected"] > 0]
+            if rates and (max(rates) - min(rates)) > 0.2:
+                worst_drug = min(drug_stats.items(), key=lambda x: x[1]["rate"])
+                recs_list.append(
+                    f"{worst_drug[0]}의 복약률({worst_drug[1]['rate']*100:.0f}%)이 다른 약보다 낮습니다. "
+                    "복용 시간이 다르거나 부작용이 있는지 담당 의사와 상의해 보세요."
+                )
+
+        # 기본 권고 (항상 포함)
+        if not recs_list:
+            recs_list.append("현재 복약 습관이 잘 유지되고 있습니다. 이 흐름을 계속 유지해 주세요.")
+        recs_list.append("약 복용에 변화나 부작용이 있을 경우 담당 의사·약사와 상담해 주세요.")
+
+        recommendations = "\n".join(f"• {r}" for r in recs_list[:4])
+
+        return {
+            "summary": summary,
+            "detail": detail,
+            "recommendations": recommendations,
+        }
+
+    # ────────────────────── LLM 호출 (폴백 연동) ──────────────────────
     async def _generate_with_llm(self, data: dict) -> dict:
-        """LLM으로 리포트 텍스트 생성"""
+        """LLM 으로 리포트 생성. 키 없음/실패 시 rule-based 폴백."""
+        # 1) 클라이언트가 아예 없으면 즉시 폴백
+        if self.client is None:
+            return self._rule_based_summary(data)
+
+        # 2) 호출 시도
         user_prompt = f"""아래 복약 데이터를 분석하여 리포트를 생성해주세요.
 
 [기간] {data['period']}
@@ -269,14 +424,22 @@ class ReportService:
                 response_format={"type": "json_object"},
             )
             content = response.choices[0].message.content or "{}"
-            return json.loads(content)
-        except Exception as e:
+            parsed = json.loads(content)
+            # 필수 필드 방어
+            if not parsed.get("summary"):
+                raise ValueError("no summary in response")
             return {
-                "summary": f"리포트 생성 중 오류가 발생했습니다: {str(e)}",
-                "detail": "데이터는 수집되었으나 AI 분석을 완료하지 못했습니다.",
-                "recommendations": "잠시 후 다시 시도해주세요.",
+                "summary": parsed.get("summary", ""),
+                "detail": parsed.get("detail", ""),
+                "recommendations": parsed.get("recommendations", ""),
             }
+        except Exception as e:
+            # LLM 실패 → 폴백
+            import logging
+            logging.getLogger(__name__).warning(f"LLM failed, using rule-based: {e}")
+            return self._rule_based_summary(data)
 
+    # ────────────────────── 리포트 생성 (원본 그대로) ──────────────────────
     async def generate_report(
         self, user_id: uuid.UUID, report_type: str = "weekly",
         start_date: date | None = None, end_date: date | None = None,
@@ -305,9 +468,9 @@ class ReportService:
                 total_checked=0,
                 streak_days=0,
                 stats_json={},
-                summary="해당 기간에 등록된 복약 일정이 없습니다.",
+                summary="해당 기간에 등록된 복약 일정이 없습니다.\n처방전을 등록하고 며칠간 복약 체크를 기록한 뒤 다시 생성해 주세요.",
                 detail="복약 일정이 없어 분석할 데이터가 없습니다.",
-                recommendations="처방전을 촬영하여 복약 일정을 등록해주세요.",
+                recommendations="처방전을 촬영하여 복약 일정을 먼저 등록해 주세요.",
             )
             self.db.add(report)
             await self.db.flush()

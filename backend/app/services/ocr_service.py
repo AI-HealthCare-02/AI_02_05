@@ -84,6 +84,7 @@ class OCRService:
                 frequency=d.get("frequency", "1일 1회"),
                 timing=d.get("timing", "after_meal"),
                 start_date=start_date or date.today(),
+                custom_time=d.get("custom_time"),
             )
             for d in drugs
         ]

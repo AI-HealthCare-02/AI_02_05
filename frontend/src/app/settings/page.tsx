@@ -98,6 +98,18 @@ export default function SettingsPage() {
     router.replace("/login");
   };
 
+  const handleWithdraw = async () => {
+    if (!confirm("정말 탈퇴할까요?\n모든 복약 데이터가 삭제되며 되돌릴 수 없어요.")) return;
+    try {
+      await fetch(`/api/auth/withdraw`, { method: "DELETE", headers: authHeaders() });
+    } finally {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("user");
+      router.replace("/login");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 pb-24">
       {/* 헤더 */}
@@ -201,7 +213,7 @@ export default function SettingsPage() {
           <div className="px-4 py-2 border-b border-gray-50">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">서비스</p>
           </div>
-          <button onClick={() => router.push("/prescriptions")}
+          <button onClick={() => router.push("/upload")}
             className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50 transition-colors">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -249,6 +261,12 @@ export default function SettingsPage() {
         <button onClick={handleLogout}
           className="w-full bg-white rounded-2xl py-4 text-sm font-semibold text-red-400 shadow-sm hover:bg-red-50 transition-colors">
           로그아웃
+        </button>
+
+        {/* 회원탈퇴 */}
+        <button onClick={handleWithdraw}
+          className="w-full py-3 text-xs text-gray-300 hover:text-red-400 transition-colors">
+          회원탈퇴
         </button>
       </div>
     </main>

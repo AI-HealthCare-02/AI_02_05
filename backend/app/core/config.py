@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     VAPID_PRIVATE_KEY: str = ""
     VAPID_PUBLIC_KEY: str = ""
     VAPID_EMAIL: str = "mailto:admin@pillmate.com"
+    TOKEN_ENCRYPT_KEY: str = ""  # Fernet key (base64 32bytes)
 
     DEBUG: bool = False
 

@@ -5,6 +5,7 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+ENV STANDALONE=true
 RUN npm run build
 
 FROM node:20-alpine AS runner

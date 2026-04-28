@@ -1,15 +1,11 @@
 import uuid
 from datetime import date
 from fastapi import APIRouter, Depends, Query, HTTPException, status
-from pydantic import BaseModel
 from app.api.deps import get_schedule_service, get_current_user_id
 from app.services.schedule_service import ScheduleService
+from app.schemas.schedule import CheckRequestDto, StatsResponseDto
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
-
-
-class CheckRequest(BaseModel):
-    checked: bool
 
 
 @router.get("/monthly")
@@ -22,7 +18,7 @@ async def get_monthly(
     return await service.get_monthly_status(user_id, year, month)
 
 
-@router.get("/stats")
+@router.get("/stats", response_model=StatsResponseDto)
 async def get_stats(
     start: date = Query(...),
     end: date = Query(...),
@@ -30,7 +26,7 @@ async def get_stats(
     service: ScheduleService = Depends(get_schedule_service),
 ):
     if start > end:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="start must be before end")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail={"code": "VALIDATION_ERROR", "message": "시작일이 종료일보다 늦을 수 없어요."})
     return await service.get_compliance(user_id, start, end)
 
 
@@ -46,7 +42,7 @@ async def get_schedule(
 @router.patch("/{schedule_id}/check")
 async def check_schedule(
     schedule_id: uuid.UUID,
-    body: CheckRequest,
+    body: CheckRequestDto,
     user_id: uuid.UUID = Depends(get_current_user_id),
     service: ScheduleService = Depends(get_schedule_service),
 ):
