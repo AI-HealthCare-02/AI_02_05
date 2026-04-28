@@ -44,7 +44,7 @@ function getPillColor(name: string) {
 function PillIcon({ name, checked }: { name: string; checked: boolean }) {
   const [c1, c2] = getPillColor(name);
   return (
-    <svg width="32" height="16" viewBox="0 0 32 16" className={`flex-shrink-0 transition-opacity ${checked ? "opacity-30" : "opacity-90"}`}>
+    <svg width="32" height="16" viewBox="0 0 32 16" className={`flex-shrink-0 transition-opacity ${checked ? "opacity-30 dark:opacity-20" : "opacity-90"}`}>
       <rect x="0" y="1" width="32" height="14" rx="7" fill={c2} />
       <rect x="0" y="1" width="16" height="14" rx="7" fill={c1} />
       <line x1="16" y1="1" x2="16" y2="15" stroke="white" strokeWidth="1" opacity="0.6" />
@@ -109,16 +109,16 @@ function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d:
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-5 pb-8" onClick={e => e.stopPropagation()}>
-        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+      <div className="bg-white dark:bg-gray-800 w-full max-w-md mx-auto rounded-t-3xl p-5 pb-8 transition-colors" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto mb-4" />
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => moveMonth(-1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-violet-600">‹</button>
-          <p className="text-sm font-bold text-gray-800">{viewYear}년 {viewMonth + 1}월</p>
-          <button onClick={() => moveMonth(1)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-violet-600">›</button>
+          <button onClick={() => moveMonth(-1)} className="w-8 h-8 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400">‹</button>
+          <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{viewYear}년 {viewMonth + 1}월</p>
+          <button onClick={() => moveMonth(1)} className="w-8 h-8 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-violet-600 dark:hover:text-violet-400">›</button>
         </div>
         <div className="grid grid-cols-7 mb-2">
           {["일","월","화","수","목","금","토"].map(d => (
-            <p key={d} className={`text-center text-xs font-semibold py-1 ${d==="일" ? "text-red-400" : d==="토" ? "text-blue-400" : "text-gray-400"}`}>{d}</p>
+            <p key={d} className={`text-center text-xs font-semibold py-1 ${d==="일" ? "text-red-400 dark:text-red-400" : d==="토" ? "text-blue-400 dark:text-blue-400" : "text-gray-400 dark:text-gray-500"}`}>{d}</p>
           ))}
         </div>
         <div className="grid grid-cols-7 gap-y-1">
@@ -133,31 +133,31 @@ function MiniCalendar({ date, onSelect, onClose }: { date: string; onSelect: (d:
             return (
               <button key={i} onClick={() => { onSelect(d); onClose(); }}
                 className={`flex flex-col items-center justify-center py-1 rounded-xl text-sm font-medium transition-all
-                  ${isSelected ? "bg-violet-600 text-white" : isToday ? "bg-violet-100 text-violet-600" : "hover:bg-gray-100"}
+                  ${isSelected ? "bg-violet-600 text-white" : isToday ? "bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400" : "hover:bg-gray-100 dark:hover:bg-gray-700"}
                   ${!isSelected && isSun ? "text-red-400" : ""}
                   ${!isSelected && isSat ? "text-blue-400" : ""}
-                  ${!isSelected && !isSun && !isSat ? "text-gray-700" : ""}`}>
+                  ${!isSelected && !isSun && !isSat ? "text-gray-700 dark:text-gray-300" : ""}`}>
                 {day}
                 {status && (
                   <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
                     status === "full" ? "bg-emerald-400" :
                     status === "partial" ? "bg-amber-400" :
-                    "bg-gray-300"}`} />
+                    "bg-gray-300 dark:bg-gray-600"}`} />
                 )}
               </button>
             );
           })}
         </div>
         <div className="flex items-center justify-center gap-4 mt-3 mb-1">
-          {[["bg-emerald-400", "완료"], ["bg-amber-400", "일부"], ["bg-gray-300", "미완료"]].map(([color, label]) => (
+          {[["bg-emerald-400", "완료"], ["bg-amber-400", "일부"], ["bg-gray-300 dark:bg-gray-600", "미완료"]].map(([color, label]) => (
             <div key={label} className="flex items-center gap-1">
               <span className={`w-2 h-2 rounded-full ${color}`} />
-              <span className="text-xs text-gray-400">{label}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">{label}</span>
             </div>
           ))}
         </div>
         <button onClick={() => { onSelect(today); onClose(); }}
-          className="w-full mt-2 text-sm text-violet-600 font-semibold py-2 bg-violet-50 rounded-xl hover:bg-violet-100 transition-colors">
+          className="w-full mt-2 text-sm text-violet-600 dark:text-violet-400 font-semibold py-2 bg-violet-50 dark:bg-violet-900/20 rounded-xl hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-colors">
           오늘로 이동
         </button>
       </div>
@@ -193,7 +193,6 @@ export default function SchedulePage() {
   const prescriptionGroups = groupByPrescription(schedules);
   const isToday = date === todayStr();
 
-  // 재처방 알림 (처방 종료 3일 이내)
   const refillAlerts = prescriptionGroups.filter(({ items }) => {
     const endDate = new Date(items[0].end_date);
     const today = new Date(todayStr());
@@ -220,12 +219,10 @@ export default function SchedulePage() {
   const progressLabel = isToday ? "오늘 진행률" : `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 진행률`;
 
   return (
-    <main className="min-h-screen bg-[#f0ede8]">
-      {/* 헤더 */}
+    <main className="min-h-screen bg-[#f0ede8] dark:bg-gray-900 transition-colors">
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-6 text-white">
         <div className="flex justify-between items-start mb-5">
           <div className="flex-1">
-            {/* 날짜 네비게이션 */}
             <div className="flex items-center gap-2 mb-1">
               <button onClick={() => moveDate(-1)}
                 className="w-6 h-6 flex items-center justify-center text-violet-200 hover:text-white transition-colors text-lg">
@@ -249,14 +246,13 @@ export default function SchedulePage() {
             </div>
             <h1 className="text-2xl font-bold">{isToday ? "오늘의 복약" : "복약 기록"}</h1>
           {total > 0 && isToday && (
-            <button onClick={handleDeleteAll} className="text-xs bg-white/15 px-3 py-1.5 rounded-full hover:bg-white/25 transition-colors">
+            <button onClick={handleDeleteAll} className="text-xs bg-white/15 px-3 py-1.5 rounded-full hover:bg-white/25 transition-colors mt-2">
               전체 삭제
             </button>
           )}
         </div>
         </div>
         
-        {/* 진행률 카드 */}
         <button className={`w-full backdrop-blur-sm rounded-2xl p-4 text-left active:bg-white/20 transition-colors ${allDone ? "bg-white/25" : "bg-white/15"}`}
           >
           {allDone && (
@@ -277,23 +273,21 @@ export default function SchedulePage() {
       </div>
 
       <div className="px-4 py-4 space-y-3 max-w-md mx-auto">
-        {/* 통계 */}
         {stats && (
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "이번 달", value: `${Math.round(stats.compliance_rate * 100)}%`, color: "text-violet-600", bg: "bg-violet-50" },
-              { label: "연속", value: `${stats.streak_days}일`, color: "text-amber-500", bg: "bg-amber-50" },
-              { label: "총 완료", value: `${stats.total_checked}회`, color: "text-gray-700", bg: "bg-gray-50" },
+              { label: "이번 달", value: `${Math.round(stats.compliance_rate * 100)}%`, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-900/20" },
+              { label: "연속", value: `${stats.streak_days}일`, color: "text-amber-500 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20" },
+              { label: "총 완료", value: `${stats.total_checked}회`, color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-50 dark:bg-gray-800" },
             ].map(({ label, value, color, bg }) => (
-              <div key={label} className={`${bg} rounded-2xl p-3 text-center`}>
+              <div key={label} className={`${bg} rounded-2xl p-3 text-center transition-colors`}>
                 <p className={`text-xl font-bold ${color}`}>{value}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{label}</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* 재처방 알림 배너 */}
         {isToday && refillAlerts.length > 0 && (
           <div className="space-y-2">
             {refillAlerts.map(({ prescribed_date, items }) => {
@@ -302,13 +296,13 @@ export default function SchedulePage() {
               const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / 86400000);
               const diseaseName = items[0].disease_name;
               return (
-                <div key={prescribed_date} className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+                <div key={prescribed_date} className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 py-3 flex items-center gap-3 transition-colors">
                   <span className="text-xl flex-shrink-0">💊</span>
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-amber-800">
-                      {diseaseName ? `${diseaseName} 약` : `${formatDate(prescribed_date)} 처방약`}이 곳 떨어져요
+                    <p className="text-sm font-bold text-amber-800 dark:text-amber-400">
+                      {diseaseName ? `${diseaseName} 약` : `${formatDate(prescribed_date)} 처방약`}이 곧 떨어져요
                     </p>
-                    <p className="text-xs text-amber-600">
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
                       {daysLeft === 0 ? "오늘이 마지막 복용일이에요" : `${daysLeft}일 후 복용 종료 · 병원 방문을 고려해보세요`}
                     </p>
                   </div>
@@ -318,35 +312,33 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* 약물 상호작용 경고 */}
         {interactions.length > 0 && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-2">
-            <p className="text-xs font-bold text-red-600">⚠️ 약물 상호작용 경고</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl p-4 space-y-2 transition-colors">
+            <p className="text-xs font-bold text-red-600 dark:text-red-400">⚠️ 약물 상호작용 경고</p>
             {interactions.map((item, i) => (
               <div key={i} className="flex items-start gap-2">
                 <span className={`text-xs px-1.5 py-0.5 rounded font-semibold flex-shrink-0 ${
-                  item.severity === "high" ? "bg-red-100 text-red-600" :
-                  item.severity === "medium" ? "bg-amber-100 text-amber-600" :
-                  "bg-gray-100 text-gray-500"}`}>
+                  item.severity === "high" ? "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400" :
+                  item.severity === "medium" ? "bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400" :
+                  "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300"}`}>
                   {item.severity === "high" ? "위험" : item.severity === "medium" ? "주의" : "정보"}
                 </span>
-                <p className="text-xs text-red-700 leading-relaxed">{item.description}</p>
+                <p className="text-xs text-red-700 dark:text-red-400 leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* 스케줄 목록 */}
         <div className="space-y-4">
           {isLoading && <ScheduleSkeleton />}
           {!isLoading && total === 0 && (
-            <div className="bg-white rounded-3xl p-8 text-center shadow-sm">
-              <div className="w-16 h-16 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center shadow-sm transition-colors">
+              <div className="w-16 h-16 bg-violet-50 dark:bg-violet-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-3xl">💊</span>
               </div>
-              <p className="text-gray-700 font-semibold mb-1">복약 일정이 없어요</p>
-              <p className="text-gray-400 text-sm mb-4">처방전을 등록하면 자동으로 생성돼요</p>
-              <a href="/upload" className="inline-block bg-violet-600 text-white text-sm px-5 py-2.5 rounded-xl font-medium">
+              <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">복약 일정이 없어요</p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm mb-4">처방전을 등록하면 자동으로 생성돼요</p>
+              <a href="/upload" className="inline-block bg-violet-600 dark:bg-violet-500 text-white text-sm px-5 py-2.5 rounded-xl font-medium transition-colors hover:bg-violet-700 dark:hover:bg-violet-600">
                 처방전 등록하기
               </a>
             </div>
@@ -355,18 +347,16 @@ export default function SchedulePage() {
           {prescriptionGroups.map(({ prescribed_date, items }) => {
             const timeGroups = groupByTime(items);
             const allDone = items.every((s) => s.checked);
-            const { currentDay, totalDays } = getDayProgress(items[0], date);
             const diseaseName = items[0].disease_name;
             return (
               <div key={prescribed_date} className="space-y-2">
-                {/* 처방전 헤더 */}
                 <div className="flex items-center gap-2 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                  <span className="text-xs font-bold text-violet-600">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 dark:bg-violet-500" />
+                  <span className="text-xs font-bold text-violet-600 dark:text-violet-400">
                     {formatDate(prescribed_date)} 처방
-                    {diseaseName && <span className="ml-1 text-violet-400">· {diseaseName}</span>}
+                    {diseaseName && <span className="ml-1 text-violet-400 dark:text-violet-500">· {diseaseName}</span>}
                   </span>
-                  {allDone && <span className="ml-auto text-xs text-violet-500 font-medium">✓ 모두 완료</span>}
+                  {allDone && <span className="ml-auto text-xs text-violet-500 dark:text-violet-400 font-medium">✓ 모두 완료</span>}
                 </div>
 
                 {timeGroups.map(([time, timeItems], tIdx) => {
@@ -380,77 +370,105 @@ export default function SchedulePage() {
                   const displayHour = h > 12 ? h - 12 : h;
                   return (
                     <div key={time} className="relative">
-                      {/* 봉투 연결 점선 (첫 번째 제외) */}
                       {tIdx > 0 && (
                         <div className="flex justify-center -mt-1 mb-0 z-10 relative">
-                          <div className="w-[85%] border-t-2 border-dashed border-gray-200" />
+                          <div className="w-[85%] border-t-2 border-dashed border-gray-200 dark:border-gray-700 transition-colors" />
                         </div>
                       )}
-                      {/* 약봉투 카드 */}
-                      <div className={`relative transition-all duration-300 ${timeAllChecked ? "opacity-55" : ""}`}>
-                        {/* 상단 지그재그 tear line */}
+                      
+                      {/* 약봉투 카드 - 다크모드 대응 */}
+                      <div className={`relative transition-all duration-300 ${timeAllChecked ? "opacity-55 dark:opacity-40" : ""}`}>
+                        {/* 상단 지그재그 */}
                         <div className="relative overflow-hidden h-4">
                           <svg viewBox="0 0 400 16" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                            <path d="M0,16 L0,8 L10,0 L20,8 L30,0 L40,8 L50,0 L60,8 L70,0 L80,8 L90,0 L100,8 L110,0 L120,8 L130,0 L140,8 L150,0 L160,8 L170,0 L180,8 L190,0 L200,8 L210,0 L220,8 L230,0 L240,8 L250,0 L260,8 L270,0 L280,8 L290,0 L300,8 L310,0 L320,8 L330,0 L340,8 L350,0 L360,8 L370,0 L380,8 L390,0 L400,8 L400,16 Z"
-                              fill={timeAllChecked ? "#ede9fe" : "#f8f8f8"} />
+                            {/* 다크모드 시 배경색에 맞게 지그재그 채우기 */}
+                            <path className="fill-[#f8f8f8] dark:fill-gray-800 transition-colors"
+                              style={{ fill: timeAllChecked ? 'var(--tw-colors-violet-50)' : '' }} 
+                              d="M0,16 L0,8 L10,0 L20,8 L30,0 L40,8 L50,0 L60,8 L70,0 L80,8 L90,0 L100,8 L110,0 L120,8 L130,0 L140,8 L150,0 L160,8 L170,0 L180,8 L190,0 L200,8 L210,0 L220,8 L230,0 L240,8 L250,0 L260,8 L270,0 L280,8 L290,0 L300,8 L310,0 L320,8 L330,0 L340,8 L350,0 L360,8 L370,0 L380,8 L390,0 L400,8 L400,16 Z"
+                            />
+                            {/* 완료 상태일 때 다크모드 지그재그 색상 (css 변수로 제어하기 어려워 dark 클래스 활용) */}
+                            <path className="hidden dark:block fill-gray-800 transition-colors" 
+                              style={{ fill: timeAllChecked ? 'rgba(139, 92, 246, 0.2)' : '#1f2937' }}
+                              d="M0,16 L0,8 L10,0 L20,8 L30,0 L40,8 L50,0 L60,8 L70,0 L80,8 L90,0 L100,8 L110,0 L120,8 L130,0 L140,8 L150,0 L160,8 L170,0 L180,8 L190,0 L200,8 L210,0 L220,8 L230,0 L240,8 L250,0 L260,8 L270,0 L280,8 L290,0 L300,8 L310,0 L320,8 L330,0 L340,8 L350,0 L360,8 L370,0 L380,8 L390,0 L400,8 L400,16 Z"
+                            />
                           </svg>
                         </div>
 
                         {/* 봉투 본체 */}
-                        <div className={`px-5 pt-3 pb-5 ${timeAllChecked ? "bg-violet-50" : "bg-[#f8f8f8]"} shadow-sm`}>
-                          {/* 시간 + 시간대명 크게 */}
+                        <div className={`px-5 pt-3 pb-5 shadow-sm transition-colors
+                          ${timeAllChecked 
+                            ? "bg-violet-50 dark:bg-violet-900/20" 
+                            : "bg-[#f8f8f8] dark:bg-gray-800"}`}>
+                          
                           <div className="mb-3">
                             <div className="flex items-baseline gap-1.5">
-                              <span className="text-4xl font-black text-gray-800 tracking-tight">
+                              <span className="text-4xl font-black text-gray-800 dark:text-gray-100 tracking-tight transition-colors">
                                 {displayHour}:{min}
                               </span>
-                              <span className="text-sm font-bold text-gray-400">{ampm}</span>
+                              <span className="text-sm font-bold text-gray-400 dark:text-gray-500 transition-colors">{ampm}</span>
                             </div>
-                            {label && <p className="text-xl font-bold text-gray-700 -mt-1">{label}</p>}
-                            <p className="text-xs text-gray-400 mt-0.5">{dateLabel}</p>
+                            {label && <p className="text-xl font-bold text-gray-700 dark:text-gray-300 -mt-1 transition-colors">{label}</p>}
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors">{dateLabel}</p>
                           </div>
 
-                          {/* 약물 체크리스트 */}
                           <div className="space-y-2 mb-3">
                             {timeItems.map((item) => (
                               <div key={item.id} className="flex items-center gap-2.5">
                                 <button onClick={() => check({ scheduleId: item.id, checked: !item.checked })}
                                   className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all
-                                    ${item.checked ? "bg-violet-600 border-violet-600 text-white" : "border-gray-300 bg-white hover:border-violet-400"}`}>
+                                    ${item.checked 
+                                      ? "bg-violet-600 border-violet-600 dark:bg-violet-500 dark:border-violet-500 text-white" 
+                                      : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-violet-400 dark:hover:border-violet-500"}`}>
                                   {item.checked && <span className="text-[10px] font-bold">✓</span>}
                                 </button>
                                 <PillIcon name={item.drug_name} checked={item.checked} />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-semibold ${item.checked ? "line-through text-gray-300" : "text-gray-700"}`}>
+                                  <p className={`text-sm font-semibold transition-colors ${
+                                    item.checked 
+                                      ? "line-through text-gray-300 dark:text-gray-600" 
+                                      : "text-gray-700 dark:text-gray-200"}`}>
                                     {item.drug_name}
                                   </p>
-                                  {item.dosage && <p className="text-xs text-gray-400">1회 {item.dosage}</p>}
+                                  {item.dosage && <p className="text-xs text-gray-400 dark:text-gray-500 transition-colors">1회 {item.dosage}</p>}
                                 </div>
                                 <button onClick={() => deleteSchedule(item.id)}
-                                  className="w-5 h-5 flex items-center justify-center text-gray-300 hover:text-red-400 transition-colors text-base flex-shrink-0">
+                                  className="w-5 h-5 flex items-center justify-center text-gray-300 dark:text-gray-600 hover:text-red-400 dark:hover:text-red-400 transition-colors text-base flex-shrink-0">
                                   ×
                                 </button>
                               </div>
                             ))}
                           </div>
 
-                          {/* 복용 완료 버튼 */}
                           <button onClick={() => handleGroupCheck(timeItems)}
                             className={`flex items-center gap-1.5 text-xs font-semibold transition-all
-                              ${timeAllChecked ? "text-violet-500" : timeSomeChecked ? "text-amber-500" : "text-gray-400 hover:text-violet-500"}`}>
-                            <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[9px]
-                              ${timeAllChecked ? "border-violet-400 bg-violet-100" : "border-gray-300"}`}>
+                              ${timeAllChecked 
+                                ? "text-violet-500 dark:text-violet-400" 
+                                : timeSomeChecked 
+                                  ? "text-amber-500 dark:text-amber-400" 
+                                  : "text-gray-400 dark:text-gray-500 hover:text-violet-500 dark:hover:text-violet-400"}`}>
+                            <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-[9px] transition-colors
+                              ${timeAllChecked 
+                                ? "border-violet-400 dark:border-violet-500 bg-violet-100 dark:bg-violet-900/50" 
+                                : "border-gray-300 dark:border-gray-600"}`}>
                               {timeAllChecked ? "✓" : "○"}
                             </span>
                             {timeAllChecked ? "복용 완료" : timeSomeChecked ? `${checkedCount}/${timeItems.length} 완료` : "복용 완료로 표시"}
                           </button>
                         </div>
 
-                        {/* 하단 지그재그 (봉투 밀봉 부분) */}
+                        {/* 하단 지그재그 */}
                         <div className="relative overflow-hidden h-3">
                           <svg viewBox="0 0 400 12" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                            <path d="M0,0 L0,4 L10,12 L20,4 L30,12 L40,4 L50,12 L60,4 L70,12 L80,4 L90,12 L100,4 L110,12 L120,4 L130,12 L140,4 L150,12 L160,4 L170,12 L180,4 L190,12 L200,4 L210,12 L220,4 L230,12 L240,4 L250,12 L260,4 L270,12 L280,4 L290,12 L300,4 L310,12 L320,4 L330,12 L340,4 L350,12 L360,4 L370,12 L380,4 L390,12 L400,4 L400,0 Z"
-                              fill={timeAllChecked ? "#ede9fe" : "#f8f8f8"} />
+                            {/* 라이트모드용 */}
+                            <path className="fill-[#f8f8f8] dark:hidden transition-colors"
+                              style={{ fill: timeAllChecked ? 'var(--tw-colors-violet-50)' : '' }} 
+                              d="M0,0 L0,4 L10,12 L20,4 L30,12 L40,4 L50,12 L60,4 L70,12 L80,4 L90,12 L100,4 L110,12 L120,4 L130,12 L140,4 L150,12 L160,4 L170,12 L180,4 L190,12 L200,4 L210,12 L220,4 L230,12 L240,4 L250,12 L260,4 L270,12 L280,4 L290,12 L300,4 L310,12 L320,4 L330,12 L340,4 L350,12 L360,4 L370,12 L380,4 L390,12 L400,4 L400,0 Z"
+                            />
+                            {/* 다크모드용 */}
+                            <path className="hidden dark:block fill-gray-800 transition-colors" 
+                              style={{ fill: timeAllChecked ? 'rgba(139, 92, 246, 0.2)' : '#1f2937' }}
+                              d="M0,0 L0,4 L10,12 L20,4 L30,12 L40,4 L50,12 L60,4 L70,12 L80,4 L90,12 L100,4 L110,12 L120,4 L130,12 L140,4 L150,12 L160,4 L170,12 L180,4 L190,12 L200,4 L210,12 L220,4 L230,12 L240,4 L250,12 L260,4 L270,12 L280,4 L290,12 L300,4 L310,12 L320,4 L330,12 L340,4 L350,12 L360,4 L370,12 L380,4 L390,12 L400,4 L400,0 Z"
+                            />
                           </svg>
                         </div>
                       </div>
@@ -462,7 +480,7 @@ export default function SchedulePage() {
           })}
         </div>
 
-        <p className="text-xs text-gray-300 text-center pb-6">
+        <p className="text-xs text-gray-300 dark:text-gray-600 text-center pb-6 transition-colors">
           ※ 본 스케줄은 참고용입니다. 변경 시 의사·약사와 상담하세요.
         </p>
       </div>
