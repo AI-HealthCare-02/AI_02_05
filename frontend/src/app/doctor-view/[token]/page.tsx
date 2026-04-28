@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 // 📝 가짜 환자 데이터 (Mock Data)
@@ -38,7 +38,8 @@ function Accordion({ title, children, defaultOpen = false, seniorMode }: { title
   );
 }
 
-export default function DoctorViewPage({ params }: { params: { token: string } }) {
+export default function DoctorViewPage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params);
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   
