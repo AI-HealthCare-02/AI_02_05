@@ -400,7 +400,7 @@ export default function SchedulePage() {
                                 return diseases.length > 0 ? (
                                   <div className="flex flex-wrap gap-1 justify-end">
                                     {diseases.map(d => (
-                                      <span key={d} className="text-[11px] px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 font-medium">
+                                      <span key={d} className="text-sm px-2.5 py-1 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 font-bold">
                                         {d}
                                       </span>
                                     ))}
