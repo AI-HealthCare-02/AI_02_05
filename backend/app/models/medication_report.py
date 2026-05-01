@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, date
-from sqlalchemy import String, Text, Date, DateTime, ForeignKey, Float, text
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import String, Text, Date, DateTime, ForeignKey, Float, text, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
@@ -21,7 +21,7 @@ class MedicationReport(Base):
     total_scheduled: Mapped[int] = mapped_column(default=0)
     total_checked: Mapped[int] = mapped_column(default=0)
     streak_days: Mapped[int] = mapped_column(default=0)
-    stats_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)  # 약물별·시간대별 상세
+    stats_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # 약물별·시간대별 상세
 
     # LLM 생성 콘텐츠
     summary: Mapped[str] = mapped_column(Text, nullable=False)  # 요약 (환자용)
