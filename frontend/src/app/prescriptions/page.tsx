@@ -47,9 +47,15 @@ export default function PrescriptionsPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-6 text-white">
-        <button onClick={() => router.back()} className="text-violet-200 text-sm mb-3 flex items-center gap-1">
-          ‹ 뒤로
-        </button>
+        <div className="flex justify-between items-start">
+          <button onClick={() => router.back()} className="text-violet-200 text-sm mb-3 flex items-center gap-1">
+            ‹ 뒤로
+          </button>
+          <button onClick={() => router.push("/upload")}
+            className="text-xs bg-white/20 px-3 py-1.5 rounded-full hover:bg-white/30 transition-colors font-medium">
+            + 처방전 추가
+          </button>
+        </div>
         <h1 className="text-xl font-bold">처방전 관리</h1>
         <p className="text-violet-200 text-xs mt-0.5">등록된 처방전 {list.length}개</p>
       </div>
