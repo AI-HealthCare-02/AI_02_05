@@ -28,15 +28,9 @@ async def test_share_view_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_admin_stats(client: AsyncClient):
+async def test_admin_stats_requires_auth(client: AsyncClient):
     res = await client.get("/admin/stats")
-    assert res.status_code == 200
-    data = res.json()
-    assert "users" in data
-    assert "prescriptions" in data
-    assert "checks" in data
-    assert "active_schedules" in data
-    assert "daily_checks" in data
+    assert res.status_code == 401
 
 
 @pytest.mark.asyncio

@@ -15,12 +15,11 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef("");
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); if (s) setMessages(JSON.parse(s)); } catch {}
@@ -33,6 +32,19 @@ export default function ChatPage() {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  // TTS 상태 감지
+  useEffect(() => {
+    const check = setInterval(() => {
+      setSpeaking(window.speechSynthesis.speaking);
+    }, 200);
+    return () => clearInterval(check);
+  }, []);
+
+  const stopSpeaking = () => {
+    window.speechSynthesis.cancel();
+    setSpeaking(false);
+  };
+
   const send = async (text?: string) => {
     const userMsg = (text ?? input).trim();
     if (!userMsg || loading) return;
@@ -44,7 +56,6 @@ export default function ChatPage() {
     const token = localStorage.getItem("access_token");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    else headers["X-User-Id"] = process.env.NEXT_PUBLIC_DEV_USER_ID ?? "00000000-0000-0000-0000-000000000001";
 
     try {
       const resp = await fetch(`${API_URL}/api/chat/stream`, {
@@ -71,6 +82,8 @@ export default function ChatPage() {
         const utterance = new SpeechSynthesisUtterance(contentRef.current.replace(/[#*`]/g, ""));
         utterance.lang = "ko-KR";
         utterance.rate = 0.9;
+        utterance.onend = () => setSpeaking(false);
+        setSpeaking(true);
         window.speechSynthesis.speak(utterance);
       }
     } catch {
@@ -78,56 +91,62 @@ export default function ChatPage() {
     } finally { setLoading(false); }
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-      mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setTranscribing(true);
-        try {
-          const formData = new FormData();
-          formData.append("file", blob, "audio.webm");
-          const token = localStorage.getItem("access_token");
-          const headers: Record<string, string> = {};
-          if (token) headers["Authorization"] = `Bearer ${token}`;
-          const res = await fetch(`${API_URL}/api/voice/transcribe`, {
-            method: "POST", headers, body: formData,
-          });
-          const data = await res.json();
-          if (data.text) await send(data.text);
-        } catch {
-          alert("음성 인식에 실패했어요. 다시 시도해주세요.");
-        } finally {
-          setTranscribing(false);
-        }
-      };
-      mediaRecorder.start();
-      setRecording(true);
-    } catch {
-      alert("마이크 권한을 허용해주세요.");
+  // Web Speech API 음성 인식
+  const toggleListening = () => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
     }
-  };
 
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("이 브라우저는 음성 인식을 지원하지 않아요. Chrome을 사용해주세요.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ko-KR";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => setListening(true);
+
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results)
+        .map((r) => r[0].transcript)
+        .join("");
+      setInput(transcript);
+
+      // 최종 결과가 나오면 자동 전송
+      if (e.results[e.results.length - 1].isFinal) {
+        recognition.stop();
+        setListening(false);
+        if (transcript.trim()) send(transcript.trim());
+      }
+    };
+
+    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+      setListening(false);
+      if (e.error === "not-allowed") alert("마이크 권한을 허용해주세요.");
+    };
+
+    recognition.onend = () => setListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
   };
 
   const clearHistory = () => {
     if (confirm("대화 기록을 모두 삭제할까요?")) {
       setMessages([]);
       localStorage.removeItem(STORAGE_KEY);
-      window.speechSynthesis.cancel();
+      stopSpeaking();
     }
   };
 
   return (
-    <main className="min-h-screen flex flex-col bg-gray-50">
+    <main className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 px-5 pt-12 pb-5 text-white">
         <div className="flex justify-between items-start">
           <div>
@@ -146,12 +165,12 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="pt-4">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-violet-100 dark:bg-violet-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-3xl">🤖</span>
               </div>
-              <p className="text-gray-700 font-semibold">무엇이 궁금하세요?</p>
+              <p className="text-gray-700 dark:text-gray-200 font-semibold">무엇이 궁금하세요?</p>
               <p className="text-gray-400 text-xs mt-1">현재 복약 중인 약물을 기반으로 답변해드려요</p>
-              <p className="text-gray-400 text-xs mt-0.5">🎤 마이크 버튼을 누르고 말씀하세요</p>
+              <p className="text-gray-400 text-xs mt-0.5">🎤 마이크 버튼을 눌러 말씀하세요</p>
             </div>
             <div className="space-y-2">
               {[
@@ -160,9 +179,9 @@ export default function ChatPage() {
                 { icon: "🍺", text: "약 먹고 술 마셔도 돼요?" },
               ].map(({ icon, text }) => (
                 <button key={text} onClick={() => send(text)}
-                  className="flex items-center gap-3 w-full text-left bg-white border border-gray-100 rounded-2xl px-4 py-3.5 hover:border-violet-300 hover:shadow-sm transition-all">
+                  className="flex items-center gap-3 w-full text-left bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-4 py-3.5 hover:border-violet-300 dark:hover:border-violet-600 hover:shadow-sm transition-all">
                   <span className="text-lg">{icon}</span>
-                  <span className="text-sm text-gray-700 font-medium">{text}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-200 font-medium">{text}</span>
                 </button>
               ))}
             </div>
@@ -172,19 +191,20 @@ export default function ChatPage() {
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} items-end gap-2`}>
             {msg.role === "assistant" && (
-              <div className="w-7 h-7 bg-violet-100 rounded-full flex items-center justify-center flex-shrink-0 mb-0.5">
+              <div className="w-7 h-7 bg-violet-100 dark:bg-violet-900/30 rounded-full flex items-center justify-center flex-shrink-0 mb-0.5">
                 <span className="text-sm">🤖</span>
               </div>
             )}
             <div className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed
               ${msg.role === "user"
-                ? "bg-violet-600 text-white rounded-br-sm"
-                : "bg-white text-gray-800 shadow-sm rounded-bl-sm border border-gray-100"}`}>
+                ? "bg-violet-600 dark:bg-violet-500 text-white rounded-br-sm" 
+                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 shadow-sm rounded-bl-sm border border-gray-100 dark:border-gray-700"}`}> 
+              
               {msg.role === "assistant" && msg.content ? (
                 <ReactMarkdown
                   components={{
                     p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-                    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                    strong: ({ children }) => <strong className="font-bold text-violet-700 dark:text-violet-400">{children}</strong>,
                     ul: ({ children }) => <ul className="list-disc pl-4 space-y-0.5">{children}</ul>,
                     ol: ({ children }) => <ol className="list-decimal pl-4 space-y-0.5">{children}</ol>,
                     li: ({ children }) => <li className="text-sm">{children}</li>,
@@ -196,7 +216,7 @@ export default function ChatPage() {
               ) : (
                 <span className="flex gap-1 items-center h-4">
                   {[0, 0.15, 0.3].map((d) => (
-                    <span key={d} className="w-1.5 h-1.5 bg-violet-300 rounded-full animate-bounce"
+                    <span key={d} className="w-1.5 h-1.5 bg-violet-300 dark:bg-violet-500 rounded-full animate-bounce"
                       style={{ animationDelay: `${d}s` }} />
                   ))}
                 </span>
@@ -207,36 +227,45 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="bg-white border-t border-gray-100 px-4 py-3 sticky bottom-0 shadow-lg">
+      {/* TTS 음성 중지 버튼 */}
+      {speaking && (
+        <div className="flex justify-center pb-2">
+          <button onClick={stopSpeaking}
+            className="flex items-center gap-2 bg-red-500 text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg animate-pulse hover:bg-red-600 transition-colors">
+            <span>🔊</span> 음성 답변 중지
+          </button>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 px-4 py-3 sticky bottom-0 shadow-lg transition-colors">
         <div className="flex gap-2 max-w-md mx-auto">
           <input
-            value={transcribing ? "음성 인식 중..." : input}
+            value={listening ? "🎤 듣고 있어요..." : input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && send()}
             placeholder="궁금한 점을 입력하거나 🎤 버튼을 눌러 말씀하세요"
-            disabled={transcribing}
-            className="flex-1 border border-gray-200 rounded-2xl px-4 py-2.5 text-sm text-gray-800
-              focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 bg-gray-50 placeholder-gray-400 transition-all disabled:opacity-60"
+            disabled={listening}
+            className="flex-1 border border-gray-200 dark:border-gray-600 rounded-2xl px-4 py-2.5 text-sm text-gray-800 dark:text-gray-100
+              focus:outline-none focus:border-violet-400 dark:focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/50 
+              bg-gray-50 dark:bg-gray-700 placeholder-gray-400 dark:placeholder-gray-400 transition-all disabled:opacity-60"
           />
           <button
-            onMouseDown={startRecording}
-            onMouseUp={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
-            disabled={loading || transcribing}
+            onClick={toggleListening}
+            disabled={loading}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition-all flex-shrink-0 shadow-sm
-              ${recording ? "bg-red-500 scale-110 animate-pulse" : "bg-violet-100 hover:bg-violet-200"}
-              disabled:opacity-40`}>
-            <span className="text-lg">{recording ? "🔴" : "🎤"}</span>
+              ${listening ? "bg-red-500 scale-110 animate-pulse text-white" : "bg-violet-100 dark:bg-violet-900/50 hover:bg-violet-200 dark:hover:bg-violet-800/50"}
+              disabled:opacity-40`}
+          >
+            <span className="text-lg">{listening ? "🔴" : "🎤"}</span>
           </button>
-          <button onClick={() => send()} disabled={loading || !input.trim() || transcribing}
-            className="w-10 h-10 bg-violet-600 text-white rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-violet-700 transition-colors flex-shrink-0 shadow-sm">
+          <button onClick={() => send()} disabled={loading || !input.trim() || listening}
+            className="w-10 h-10 bg-violet-600 dark:bg-violet-500 text-white rounded-full flex items-center justify-center disabled:opacity-40 hover:bg-violet-700 dark:hover:bg-violet-600 transition-colors flex-shrink-0 shadow-sm">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
             </svg>
           </button>
         </div>
-        <p className="text-xs text-gray-300 text-center mt-2">AI 답변은 참고용이며 의료 행위를 대체하지 않습니다</p>
+        <p className="text-xs text-gray-300 dark:text-gray-500 text-center mt-2">AI 답변은 참고용이며 의료 행위를 대체하지 않습니다</p>
       </div>
     </main>
   );

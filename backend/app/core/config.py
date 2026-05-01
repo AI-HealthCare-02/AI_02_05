@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     VAPID_EMAIL: str = "mailto:admin@pillmate.com"
     TOKEN_ENCRYPT_KEY: str = ""  # Fernet key (base64 32bytes)
 
+    ADMIN_PASSWORD: str = ""
+
     DEBUG: bool = False
 
     class Config:

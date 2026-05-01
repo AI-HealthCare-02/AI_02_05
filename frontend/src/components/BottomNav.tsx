@@ -29,17 +29,22 @@ export default function BottomNav() {
   if (HIDE_ON.some((p) => path.startsWith(p))) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 flex z-50 shadow-lg">
+    // 다크모드 배경(dark:bg-gray-800)과 테두리선(dark:border-gray-700) 추가
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex z-50 shadow-lg transition-colors">
       {tabs.map(({ href, label, icon }) => {
         const active = path.startsWith(href);
         return (
           <Link key={href} href={href}
             className="flex-1 flex flex-col items-center justify-center py-2.5 gap-1 transition-colors relative">
-            {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-violet-600 rounded-full" />}
-            <span className={active ? "text-violet-600" : "text-gray-400"}>
+            {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-violet-600 dark:bg-violet-400 rounded-full" />}
+            
+            {/* 비활성화된 아이콘 색상을 다크모드일 때 더 잘 보이게(dark:text-gray-500) 변경 */}
+            <span className={active ? "text-violet-600 dark:text-violet-400" : "text-gray-400 dark:text-gray-500"}>
               {icon(active)}
             </span>
-            <span className={`text-[10px] font-semibold ${active ? "text-violet-600" : "text-gray-400"}`}>
+            
+            {/* 비활성화된 글씨 색상을 다크모드일 때 더 잘 보이게(dark:text-gray-500) 변경 */}
+            <span className={`text-[10px] font-semibold ${active ? "text-violet-600 dark:text-violet-400" : "text-gray-400 dark:text-gray-500"}`}>
               {label}
             </span>
           </Link>

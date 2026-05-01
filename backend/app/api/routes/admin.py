@@ -1,18 +1,39 @@
 import uuid
-from datetime import date, timedelta, datetime, timezone
+from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func
 from app.core.database import get_db
 from app.models.user import User
 from app.models.ocr_result import OCRResult
 from app.models.medication_schedule import MedicationSchedule, ScheduleCheck
+from app.services.admin_service import AdminService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+_bearer = HTTPBearer()
+
+
+async def verify_admin_token(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+) -> str:
+    """관리자 JWT 검증 의존성"""
+    return AdminService.verify_token(credentials.credentials)
+
+
+@router.post("/login")
+async def admin_login(body: dict) -> dict:
+    """관리자 로그인 → JWT 발급"""
+    token = AdminService.authenticate(body.get("password", ""))
+    return {"token": token}
+
 
 @router.get("/stats")
-async def get_stats(db: AsyncSession = Depends(get_db)):
+async def get_stats(
+    _: str = Depends(verify_admin_token),
+    db: AsyncSession = Depends(get_db),
+):
     today = date.today()
     week_ago = today - timedelta(days=7)
     month_ago = today - timedelta(days=30)
@@ -117,7 +138,10 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/users")
-async def get_users(db: AsyncSession = Depends(get_db)):
+async def get_users(
+    _: str = Depends(verify_admin_token),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(
         select(User).order_by(User.created_at.desc())
     )
@@ -135,7 +159,11 @@ async def get_users(db: AsyncSession = Depends(get_db)):
 
 
 @router.patch("/users/{user_id}/block")
-async def block_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def block_user(
+    user_id: uuid.UUID,
+    _: str = Depends(verify_admin_token),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
@@ -146,7 +174,11 @@ async def block_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/users/{user_id}")
-async def delete_user(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def delete_user(
+    user_id: uuid.UUID,
+    _: str = Depends(verify_admin_token),
+    db: AsyncSession = Depends(get_db),
+):
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

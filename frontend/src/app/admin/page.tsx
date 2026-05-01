@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const ADMIN_PASSWORD = "pillmate2025";
 
 interface Stats {
   users: { total: number; new_today: number; new_this_week: number };
@@ -32,8 +31,15 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const authHeaders = () => {
+    const token = sessionStorage.getItem("admin_token");
+    const h: Record<string, string> = {};
+    if (token) h["Authorization"] = `Bearer ${token}`;
+    return h;
+  };
+
   useEffect(() => {
-    if (sessionStorage.getItem("admin_authed") === "true") {
+    if (sessionStorage.getItem("admin_token")) {
       setAuthed(true);
       fetchStats();
     }
@@ -42,7 +48,7 @@ export default function AdminPage() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/stats`);
+      const res = await fetch(`${API_URL}/api/admin/stats`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       setStats(await res.json());
     } catch {
@@ -55,7 +61,7 @@ export default function AdminPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/admin/users`);
+      const res = await fetch(`${API_URL}/api/admin/users`, { headers: authHeaders() });
       if (!res.ok) throw new Error();
       setUsers(await res.json());
     } catch {
@@ -73,22 +79,30 @@ export default function AdminPage() {
 
   const handleBlock = async (userId: string, isActive: boolean) => {
     if (!confirm(isActive ? "이 유저를 차단할까요?" : "이 유저의 차단을 해제할까요?")) return;
-    const res = await fetch(`${API_URL}/api/admin/users/${userId}/block`, { method: "PATCH" });
+    const res = await fetch(`${API_URL}/api/admin/users/${userId}/block`, { method: "PATCH", headers: authHeaders() });
     if (res.ok) fetchUsers();
   };
 
   const handleDelete = async (userId: string) => {
     if (!confirm("이 유저를 영구 삭제할까요? 되돌릴 수 없어요.")) return;
-    const res = await fetch(`${API_URL}/api/admin/users/${userId}`, { method: "DELETE" });
+    const res = await fetch(`${API_URL}/api/admin/users/${userId}`, { method: "DELETE", headers: authHeaders() });
     if (res.ok) fetchUsers();
   };
 
-  const handleLogin = () => {
-    if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem("admin_authed", "true");
+  const handleLogin = async () => {
+    setError("");
+    try {
+      const res = await fetch(`${API_URL}/api/admin/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      sessionStorage.setItem("admin_token", data.token);
       setAuthed(true);
       fetchStats();
-    } else {
+    } catch {
       setError("비밀번호가 틀렸어요.");
     }
   };
@@ -124,7 +138,7 @@ export default function AdminPage() {
             <h1 className="text-xl font-bold">운영 대시보드</h1>
             <p className="text-violet-200 text-xs mt-0.5">PillMate 서비스 현황</p>
           </div>
-          <button onClick={() => { sessionStorage.removeItem("admin_authed"); router.push("/"); }}
+          <button onClick={() => { sessionStorage.removeItem("admin_token"); router.push("/"); }}
             className="text-xs text-violet-300 hover:text-white">로그아웃</button>
         </div>
         {/* 탭 */}
@@ -284,12 +298,4 @@ export default function AdminPage() {
       </div>
     </main>
   );
-}
-
-interface Stats {
-  users: { total: number; new_today: number; new_this_week: number };
-  prescriptions: { total: number; today: number };
-  checks: { total: number; today: number; this_week: number };
-  active_schedules: number;
-  daily_checks: { date: string; count: number }[];
 }
