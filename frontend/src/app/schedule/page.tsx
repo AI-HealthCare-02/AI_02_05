@@ -344,22 +344,7 @@ export default function SchedulePage() {
             </div>
           )}
 
-          {prescriptionGroups.map(({ prescribed_date, items }) => {
-            const timeGroups = groupByTime(items);
-            const allDone = items.every((s) => s.checked);
-            const diseaseName = items[0].disease_name;
-            return (
-              <div key={prescribed_date} className="space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 dark:bg-violet-500" />
-                  <span className="text-xs font-bold text-violet-600 dark:text-violet-400">
-                    {formatDate(prescribed_date)} 처방
-                    {diseaseName && <span className="ml-1 text-violet-400 dark:text-violet-500">· {diseaseName}</span>}
-                  </span>
-                  {allDone && <span className="ml-auto text-xs text-violet-500 dark:text-violet-400 font-medium">✓ 모두 완료</span>}
-                </div>
-
-                {timeGroups.map(([time, timeItems], tIdx) => {
+          {groupByTime(schedules).map(([time, timeItems], tIdx) => {
                   const timeAllChecked = timeItems.every((s) => s.checked);
                   const timeSomeChecked = timeItems.some((s) => s.checked);
                   const label = getTimeLabel(time);
@@ -376,17 +361,15 @@ export default function SchedulePage() {
                         </div>
                       )}
                       
-                      {/* 약봉투 카드 - 다크모드 대응 */}
+                      {/* 약봉투 카드 */}
                       <div className={`relative transition-all duration-300 ${timeAllChecked ? "opacity-55 dark:opacity-40" : ""}`}>
                         {/* 상단 지그재그 */}
                         <div className="relative overflow-hidden h-4">
                           <svg viewBox="0 0 400 16" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                            {/* 다크모드 시 배경색에 맞게 지그재그 채우기 */}
                             <path className="fill-[#f8f8f8] dark:fill-gray-800 transition-colors"
                               style={{ fill: timeAllChecked ? 'var(--tw-colors-violet-50)' : '' }} 
                               d="M0,16 L0,8 L10,0 L20,8 L30,0 L40,8 L50,0 L60,8 L70,0 L80,8 L90,0 L100,8 L110,0 L120,8 L130,0 L140,8 L150,0 L160,8 L170,0 L180,8 L190,0 L200,8 L210,0 L220,8 L230,0 L240,8 L250,0 L260,8 L270,0 L280,8 L290,0 L300,8 L310,0 L320,8 L330,0 L340,8 L350,0 L360,8 L370,0 L380,8 L390,0 L400,8 L400,16 Z"
                             />
-                            {/* 완료 상태일 때 다크모드 지그재그 색상 (css 변수로 제어하기 어려워 dark 클래스 활용) */}
                             <path className="hidden dark:block fill-gray-800 transition-colors" 
                               style={{ fill: timeAllChecked ? 'rgba(139, 92, 246, 0.2)' : '#1f2937' }}
                               d="M0,16 L0,8 L10,0 L20,8 L30,0 L40,8 L50,0 L60,8 L70,0 L80,8 L90,0 L100,8 L110,0 L120,8 L130,0 L140,8 L150,0 L160,8 L170,0 L180,8 L190,0 L200,8 L210,0 L220,8 L230,0 L240,8 L250,0 L260,8 L270,0 L280,8 L290,0 L300,8 L310,0 L320,8 L330,0 L340,8 L350,0 L360,8 L370,0 L380,8 L390,0 L400,8 L400,16 Z"
@@ -423,12 +406,19 @@ export default function SchedulePage() {
                                 </button>
                                 <PillIcon name={item.drug_name} checked={item.checked} />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-sm font-semibold transition-colors ${
-                                    item.checked 
-                                      ? "line-through text-gray-300 dark:text-gray-600" 
-                                      : "text-gray-700 dark:text-gray-200"}`}>
-                                    {item.drug_name}
-                                  </p>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className={`text-sm font-semibold transition-colors ${
+                                      item.checked 
+                                        ? "line-through text-gray-300 dark:text-gray-600" 
+                                        : "text-gray-700 dark:text-gray-200"}`}>
+                                      {item.drug_name}
+                                    </p>
+                                    {item.disease_name && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 font-medium flex-shrink-0">
+                                        {item.disease_name}
+                                      </span>
+                                    )}
+                                  </div>
                                   {item.dosage && <p className="text-xs text-gray-400 dark:text-gray-500 transition-colors">1회 {item.dosage}</p>}
                                 </div>
                                 <button onClick={() => deleteSchedule(item.id)}
@@ -459,12 +449,10 @@ export default function SchedulePage() {
                         {/* 하단 지그재그 */}
                         <div className="relative overflow-hidden h-3">
                           <svg viewBox="0 0 400 12" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
-                            {/* 라이트모드용 */}
                             <path className="fill-[#f8f8f8] dark:hidden transition-colors"
                               style={{ fill: timeAllChecked ? 'var(--tw-colors-violet-50)' : '' }} 
                               d="M0,0 L0,4 L10,12 L20,4 L30,12 L40,4 L50,12 L60,4 L70,12 L80,4 L90,12 L100,4 L110,12 L120,4 L130,12 L140,4 L150,12 L160,4 L170,12 L180,4 L190,12 L200,4 L210,12 L220,4 L230,12 L240,4 L250,12 L260,4 L270,12 L280,4 L290,12 L300,4 L310,12 L320,4 L330,12 L340,4 L350,12 L360,4 L370,12 L380,4 L390,12 L400,4 L400,0 Z"
                             />
-                            {/* 다크모드용 */}
                             <path className="hidden dark:block fill-gray-800 transition-colors" 
                               style={{ fill: timeAllChecked ? 'rgba(139, 92, 246, 0.2)' : '#1f2937' }}
                               d="M0,0 L0,4 L10,12 L20,4 L30,12 L40,4 L50,12 L60,4 L70,12 L80,4 L90,12 L100,4 L110,12 L120,4 L130,12 L140,4 L150,12 L160,4 L170,12 L180,4 L190,12 L200,4 L210,12 L220,4 L230,12 L240,4 L250,12 L260,4 L270,12 L280,4 L290,12 L300,4 L310,12 L320,4 L330,12 L340,4 L350,12 L360,4 L370,12 L380,4 L390,12 L400,4 L400,0 Z"
@@ -475,9 +463,6 @@ export default function SchedulePage() {
                     </div>
                   );
                 })}
-              </div>
-            );
-          })}
         </div>
 
         <p className="text-xs text-gray-300 dark:text-gray-600 text-center pb-6 transition-colors">
