@@ -384,14 +384,30 @@ export default function SchedulePage() {
                             : "bg-[#f8f8f8] dark:bg-gray-800"}`}>
                           
                           <div className="mb-3">
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-4xl font-black text-gray-800 dark:text-gray-100 tracking-tight transition-colors">
-                                {displayHour}:{min}
-                              </span>
-                              <span className="text-sm font-bold text-gray-400 dark:text-gray-500 transition-colors">{ampm}</span>
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-4xl font-black text-gray-800 dark:text-gray-100 tracking-tight transition-colors">
+                                    {displayHour}:{min}
+                                  </span>
+                                  <span className="text-sm font-bold text-gray-400 dark:text-gray-500 transition-colors">{ampm}</span>
+                                </div>
+                                {label && <p className="text-xl font-bold text-gray-700 dark:text-gray-300 -mt-1 transition-colors">{label}</p>}
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors">{dateLabel}</p>
+                              </div>
+                              {(() => {
+                                const diseases = [...new Set(timeItems.map(s => s.disease_name).filter(Boolean))];
+                                return diseases.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1 justify-end">
+                                    {diseases.map(d => (
+                                      <span key={d} className="text-[11px] px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 font-medium">
+                                        {d}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
                             </div>
-                            {label && <p className="text-xl font-bold text-gray-700 dark:text-gray-300 -mt-1 transition-colors">{label}</p>}
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors">{dateLabel}</p>
                           </div>
 
                           <div className="space-y-2 mb-3">
@@ -406,19 +422,12 @@ export default function SchedulePage() {
                                 </button>
                                 <PillIcon name={item.drug_name} checked={item.checked} />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <p className={`text-sm font-semibold transition-colors ${
-                                      item.checked 
-                                        ? "line-through text-gray-300 dark:text-gray-600" 
-                                        : "text-gray-700 dark:text-gray-200"}`}>
-                                      {item.drug_name}
-                                    </p>
-                                    {item.disease_name && (
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 font-medium flex-shrink-0">
-                                        {item.disease_name}
-                                      </span>
-                                    )}
-                                  </div>
+                                  <p className={`text-sm font-semibold transition-colors ${
+                                    item.checked 
+                                      ? "line-through text-gray-300 dark:text-gray-600" 
+                                      : "text-gray-700 dark:text-gray-200"}`}>
+                                    {item.drug_name}
+                                  </p>
                                   {item.dosage && <p className="text-xs text-gray-400 dark:text-gray-500 transition-colors">1회 {item.dosage}</p>}
                                 </div>
                                 <button onClick={() => deleteSchedule(item.id)}
