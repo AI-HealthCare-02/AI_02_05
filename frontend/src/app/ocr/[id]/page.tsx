@@ -151,11 +151,24 @@ useEffect(() => {
 
       <div className="max-w-md mx-auto px-4 py-4 space-y-4 pb-24">
         {!manualMode && data?.confidence && (
-          <div className="bg-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between">
-            <span className="text-sm text-gray-600">인식률</span>
-            <span className={`text-sm font-bold ${data.confidence > 0.8 ? "text-emerald-600" : "text-amber-500"}`}>
-              {Math.round(data.confidence * 100)}%
-            </span>
+          <div className="bg-white rounded-2xl px-4 py-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-gray-700">AI 인식 신뢰도</span>
+              <span className={`text-lg font-bold ${data.confidence > 0.8 ? "text-emerald-600" : data.confidence > 0.6 ? "text-amber-500" : "text-red-500"}`}>
+                {Math.round(data.confidence * 100)}%
+              </span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-2">
+              <div className={`h-2 rounded-full transition-all ${data.confidence > 0.8 ? "bg-emerald-400" : data.confidence > 0.6 ? "bg-amber-400" : "bg-red-400"}`}
+                style={{ width: `${Math.round(data.confidence * 100)}%` }} />
+            </div>
+            <p className="text-xs text-gray-400">
+              {data.confidence > 0.8
+                ? "Clova OCR이 처방전 텍스트를 높은 정확도로 인식했어요"
+                : data.confidence > 0.6
+                ? "일부 글자가 불명확할 수 있어요. 원본과 대조해주세요"
+                : "인식률이 낮아요. 처방전을 다시 촬영하는 걸 권장해요"}
+            </p>
           </div>
         )}
 
