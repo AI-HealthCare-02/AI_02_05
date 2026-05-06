@@ -3,127 +3,173 @@
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// 📝 가짜 환자 데이터 (Mock Data)
-const PATIENT_MOCK = {
-  name: "김환자",
-  age: 65,
-  gender: "여",
-  disease: "고혈압, 고지혈증",
-  period: "2026.04.03 ~ 2026.04.10 (7일간)",
-  adherence: [
-    { drug: "아마릴정 (당뇨)", time: "아침, 저녁", rate: 95 },
-    { drug: "크레스토정 (고지혈증)", time: "저녁", rate: 60 },
-    { drug: "노바스크정 (고혈압)", time: "아침", rate: 100 },
-  ],
-  ai_analysis: "최근 7일간 전체 복약 순응도는 85%입니다. 아침 약은 매우 규칙적으로 복용 중이나, 저녁 식후 복용하는 '크레스토정'의 누락 빈도가 높습니다. 환자에게 저녁 식사 직후 알람을 설정하도록 권고가 필요합니다.",
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-// 🔽 아코디언 UI 컴포넌트
-function Accordion({ title, children, defaultOpen = false, seniorMode }: { title: string; children: React.ReactNode; defaultOpen?: boolean; seniorMode: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mb-3 bg-white dark:bg-gray-800 transition-colors">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-        <span className={seniorMode ? "text-base font-extrabold text-gray-900 dark:text-white" : "text-sm font-bold text-gray-800 dark:text-gray-200"}>
-          {title}
-        </span>
-        <span className={`text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
-          ▼
-        </span>
-      </button>
-      {isOpen && <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">{children}</div>}
-    </div>
-  );
+interface Report {
+  id: string;
+  report_type: string;
+  period_start: string;
+  period_end: string;
+  compliance_rate: number;
+  total_scheduled: number;
+  total_checked: number;
+  streak_days: number;
+  stats_json: Record<string, unknown> | null;
+  summary: string;
+  detail: string;
+  recommendations: string | null;
+  created_at: string | null;
+}
+
+interface DoctorViewData {
+  patient: { nickname: string; profile_img_url: string | null };
+  doctor_name: string;
+  hospital_name: string | null;
+  reports: Report[];
 }
 
 export default function DoctorViewPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  
-  // ✅ 접근성 상태 불러오기
-  const [isColorBlind, setIsColorBlind] = useState(false);
-  const [seniorMode, setSeniorMode] = useState(false);
+  const [data, setData] = useState<DoctorViewData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-    setIsColorBlind(localStorage.getItem("color_blind_mode") === "true");
-    setSeniorMode(localStorage.getItem("senior_mode") === "true");
-  }, []);
+    fetch(`${API_URL}/api/report/doctor/${token}/view`)
+      .then((r) => {
+        if (r.status === 404) throw new Error("유효하지 않은 공유 링크입니다.");
+        if (r.status === 410) throw new Error("만료된 공유 링크입니다.");
+        if (!r.ok) throw new Error("오류가 발생했어요.");
+        return r.json();
+      })
+      .then(setData)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [token]);
 
-  if (!mounted) return null;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+    </div>
+  );
 
-  // 동적 스타일 변수
-  const descClass = seniorMode ? "text-sm font-bold text-gray-700 dark:text-gray-300" : "text-xs text-gray-500 dark:text-gray-400";
-  const successText = isColorBlind ? "text-blue-600 dark:text-blue-400" : "text-emerald-600 dark:text-emerald-400";
-  const dangerText = isColorBlind ? "text-orange-500 dark:text-orange-400" : "text-red-500 dark:text-red-400";
+  if (error) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
+      <div className="text-5xl mb-4">🔗</div>
+      <p className="text-gray-700 dark:text-gray-200 font-semibold mb-2">{error}</p>
+      <p className="text-gray-400 dark:text-gray-500 text-sm">링크가 만료되었거나 올바르지 않아요.</p>
+    </div>
+  );
+
+  if (!data) return null;
+
+  const { patient, doctor_name, hospital_name, reports } = data;
 
   return (
-    <main className={`min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 transition-colors duration-200 ${seniorMode ? "senior-mode" : ""}`}>
-      {/* 헤더 영역 (의사용이므로 조금 더 차분한 톤) */}
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24 transition-colors">
+      {/* 헤더 */}
       <div className="bg-slate-800 dark:bg-black px-5 pt-12 pb-8 text-white rounded-b-3xl shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">환자 복약 리포트</h1>
           <span className="text-xs bg-slate-700 px-2 py-1 rounded-full text-slate-300">의료진 전용</span>
         </div>
-        
-        {/* 환자 요약 정보 */}
         <div className="bg-white/10 rounded-2xl p-4 backdrop-blur-sm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-lg">👤</div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-lg overflow-hidden">
+              {patient.profile_img_url
+                ? <img src={patient.profile_img_url} alt="" className="w-10 h-10 object-cover" referrerPolicy="no-referrer" />
+                : "👤"}
+            </div>
             <div>
-              <p className="text-lg font-bold">{PATIENT_MOCK.name} <span className="text-sm font-normal text-slate-300">({PATIENT_MOCK.gender}/{PATIENT_MOCK.age}세)</span></p>
-              <p className="text-xs text-slate-300 mt-0.5">조회 기간: {PATIENT_MOCK.period}</p>
+              <p className="text-lg font-bold">{patient.nickname}님</p>
+              <p className="text-xs text-slate-300">{doctor_name} · {hospital_name ?? ""}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-4 mt-6">
-        
-        {/* 1. 기저 질환 아코디언 */}
-        <Accordion title="🩺 환자 주요 질환" seniorMode={seniorMode}>
-          <p className={`${seniorMode ? "text-base font-bold" : "text-sm font-semibold"} text-gray-800 dark:text-gray-200`}>
-            {PATIENT_MOCK.disease}
-          </p>
-        </Accordion>
+      <div className="max-w-md mx-auto px-4 mt-6 space-y-4">
+        {reports.length === 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center shadow-sm">
+            <p className="text-3xl mb-3">📊</p>
+            <p className="text-gray-700 dark:text-gray-200 font-semibold mb-1">생성된 리포트가 없어요</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">환자가 리포트를 생성하면 여기에 표시됩니다</p>
+          </div>
+        )}
 
-        {/* 2. 약물별 순응도 아코디언 */}
-        <Accordion title="📊 약물별 복약 순응도" defaultOpen={true} seniorMode={seniorMode}>
-          <div className="space-y-4">
-            {PATIENT_MOCK.adherence.map((item, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className={`${seniorMode ? "text-sm font-extrabold" : "text-sm font-medium"} text-gray-700 dark:text-gray-300`}>{item.drug}</span>
-                  <span className={`${seniorMode ? "text-sm font-extrabold" : "text-sm font-bold"} ${item.rate >= 80 ? successText : dangerText}`}>
-                    {item.rate}%
-                  </span>
-                </div>
-                {/* 프로그레스 바 */}
-                <div className="h-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${item.rate >= 80 ? (isColorBlind ? "bg-blue-400" : "bg-emerald-400") : (isColorBlind ? "bg-orange-400" : "bg-red-400")}`} 
-                    style={{ width: `${item.rate}%` }}
-                  />
-                </div>
-                <p className={`${descClass} text-right`}>복용 시점: {item.time}</p>
+        {reports.map((report) => (
+          <button key={report.id} onClick={() => setSelectedReport(report)}
+            className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 text-left hover:shadow-md transition-all">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs px-2 py-1 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400 font-medium">
+                {report.report_type === "weekly" ? "주간" : "월간"} 리포트
+              </span>
+              <span className="text-xs text-gray-400">{report.period_start} ~ {report.period_end}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-2xl font-bold text-violet-600 dark:text-violet-400">{Math.round(report.compliance_rate * 100)}%</p>
+                <p className="text-xs text-gray-400">복약 순응도</p>
               </div>
-            ))}
-          </div>
-        </Accordion>
-
-        {/* 3. AI 분석 코멘트 아코디언 */}
-        <Accordion title="🤖 AI 분석 및 권고사항" defaultOpen={true} seniorMode={seniorMode}>
-          <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4 border border-violet-100 dark:border-violet-800">
-            <p className={`${seniorMode ? "text-base font-bold leading-relaxed" : "text-sm leading-relaxed"} text-gray-800 dark:text-gray-200`}>
-              {PATIENT_MOCK.ai_analysis}
-            </p>
-          </div>
-        </Accordion>
-
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{report.total_checked}/{report.total_scheduled}</p>
+                <p className="text-xs text-gray-400">복용 완료</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">{report.streak_days}일</p>
+                <p className="text-xs text-gray-400">연속</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 line-clamp-2">{report.summary}</p>
+          </button>
+        ))}
       </div>
+
+      {/* 리포트 상세 모달 */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end backdrop-blur-sm" onClick={() => setSelectedReport(null)}>
+          <div className="bg-white dark:bg-gray-800 w-full max-w-md mx-auto rounded-t-3xl p-5 pb-8 max-h-[80vh] overflow-y-auto transition-colors" onClick={(e) => e.stopPropagation()}>
+            <div className="w-10 h-1 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto mb-4" />
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">
+                {selectedReport.report_type === "weekly" ? "주간" : "월간"} 리포트
+              </h3>
+              <span className="text-xs text-gray-400">{selectedReport.period_start} ~ {selectedReport.period_end}</span>
+            </div>
+
+            {/* 요약 */}
+            <div className="bg-violet-50 dark:bg-violet-900/20 rounded-xl p-4 mb-4">
+              <p className="text-sm font-bold text-violet-600 dark:text-violet-400 mb-1">✨ 환자용 요약</p>
+              <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">{selectedReport.summary}</p>
+            </div>
+
+            {/* 상세 분석 */}
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 mb-4">
+              <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-1">📊 상세 분석</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {typeof selectedReport.detail === "string" ? selectedReport.detail : JSON.stringify(selectedReport.detail, null, 2)}
+              </p>
+            </div>
+
+            {/* 권고사항 */}
+            {selectedReport.recommendations && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4">
+                <p className="text-sm font-bold text-amber-700 dark:text-amber-400 mb-1">💡 권고사항</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                  {typeof selectedReport.recommendations === "string" ? selectedReport.recommendations : JSON.stringify(selectedReport.recommendations, null, 2)}
+                </p>
+              </div>
+            )}
+
+            <button onClick={() => setSelectedReport(null)}
+              className="w-full mt-4 py-3 bg-gray-100 dark:bg-gray-700 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
